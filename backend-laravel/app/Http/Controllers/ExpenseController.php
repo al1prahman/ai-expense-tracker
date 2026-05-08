@@ -9,12 +9,11 @@ use App\Models\Expense;
 class ExpenseController extends Controller
 {
     // =====================================================================
-    // 1. Fungsi untuk mengambil semua data (untuk History/Dashboard Next.js)
+    // 1. AMBIL RIWAYAT (Untuk Dashboard)
     // =====================================================================
     public function index()
     {
         try {
-            // Mengambil semua data pengeluaran, diurutkan dari yang terbaru
             $expenses = Expense::orderBy('date', 'desc')->get();
             return response()->json($expenses, 200);
         } catch (\Exception $e) {
@@ -23,11 +22,10 @@ class ExpenseController extends Controller
     }
 
     // =====================================================================
-    // 2. Fungsi untuk menerima gambar, kirim ke AI, dan simpan ke DB
+    // 2. EKSTRAK AI SAJA (Jangan simpan ke DB dulu)
     // =====================================================================
-    public function extractAndSave(Request $request)
+    public function extract(Request $request)
     {
-        // 1. Validasi input
         $request->validate([
             'receipt' => 'required|image|mimes:jpeg,png,jpg|max:5120',
         ]);
@@ -37,7 +35,7 @@ class ExpenseController extends Controller
         try {
             set_time_limit(300);
 
-            // 2. Kirim gambar ke Python AI Service
+            // Kirim ke Python AI
             $response = Http::timeout(120)->attach(
                 'file', file_get_contents($file), $file->getClientOriginalName()
             )->post('http://127.0.0.1:8000/extract');
@@ -49,44 +47,55 @@ class ExpenseController extends Controller
             $aiData = $response->json();
 
             if (isset($aiData['status']) && $aiData['status'] !== 'success') {
-                return response()->json(['error' => 'AI gagal: ' . ($aiData['message'] ?? 'Kesalahan tidak diketahui')], 500);
+                return response()->json(['error' => 'AI gagal: ' . ($aiData['message'] ?? 'Unknown error')], 500);
             }
 
-            // Ambil data JSON yang sudah dirapikan AI
-            $parsedData = $aiData['parsed_data'];
+            // Kembalikan hasil AI ke Frontend untuk di-review (Belum masuk DB)
+            return response()->json([
+                'message' => 'Struk berhasil dibaca AI. Silakan review data berikut.',
+                'data' => $aiData['parsed_data']
+            ], 200);
 
-            // =========================================================
-            // FITUR BARU: SATPAM PENCEGAH DUPLIKAT
-            // =========================================================
-            // Cek apakah ada struk di tanggal yang sama & total harga yang sama
-            $isDuplicate = Expense::where('date', $parsedData['date'])
-                                  ->where('total', $parsedData['total'])
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Terjadi kesalahan sistem: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // =====================================================================
+    // 3. SIMPAN KE DATABASE (Setelah di-review manusia)
+    // =====================================================================
+    public function store(Request $request)
+    {
+        // Validasi data yang dikirim dari form Next.js
+        $validatedData = $request->validate([
+            'category' => 'required|string',
+            'date' => 'required|date',
+            'total' => 'required|numeric',
+            'items' => 'required|array',
+        ]);
+
+        try {
+            // FITUR: SATPAM PENCEGAH DUPLIKAT
+            $isDuplicate = Expense::where('date', $validatedData['date'])
+                                  ->where('total', $validatedData['total'])
                                   ->exists();
 
             if ($isDuplicate) {
-                // Jika duplikat, hentikan proses dan kembalikan error 409 (Conflict)
                 return response()->json([
-                    'error' => 'Gagal: Struk ini sepertinya sudah pernah di-scan sebelumnya (Data Duplikat).'
+                    'error' => 'Gagal: Struk ini sepertinya sudah pernah disimpan (Data Duplikat).'
                 ], 409);
             }
-            // =========================================================
 
-            // 3. Simpan hasil cerdas dari AI ke Database Supabase
-            $expense = Expense::create([
-                'items' => $parsedData['items'],
-                'total' => $parsedData['total'],
-                'date' => $parsedData['date'],
-                'category' => $parsedData['category']
-            ]);
+            // Simpan ke Database Supabase
+            $expense = Expense::create($validatedData);
 
-            // 4. Kembalikan data yang sudah tersimpan ke Frontend
             return response()->json([
-                'message' => 'Struk berhasil diproses dan disimpan!',
+                'message' => 'Data tervalidasi berhasil disimpan ke Database!',
                 'data' => $expense
             ], 201);
 
         } catch (\Exception $e) {
-            return response()->json(['error' => 'Terjadi kesalahan sistem: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Gagal menyimpan ke database: ' . $e->getMessage()], 500);
         }
     }
 }

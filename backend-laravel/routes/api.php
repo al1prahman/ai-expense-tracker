@@ -4,8 +4,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ExpenseController;
 
-// Rute untuk mengambil daftar pengeluaran
+// 1. Ambil riwayat pengeluaran
 Route::get('/expenses', [ExpenseController::class, 'index']);
 
-// Rute untuk mengunggah dan memproses struk
-Route::post('/expenses/extract', [ExpenseController::class, 'extractAndSave']);
+// 2. Upload gambar untuk dibaca AI (Tidak simpan DB)
+Route::post('/expenses/extract', [ExpenseController::class, 'extract']);
+
+// 3. Simpan data yang sudah diedit manusia ke Database
+Route::post('/expenses', [ExpenseController::class, 'store']);

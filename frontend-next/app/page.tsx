@@ -1,71 +1,80 @@
 "use client";
 
-import { useState, useEffect} from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const [expenseData, setExpenseData] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
 
-  // Fungsi untuk mengambil data dari database saat halaman pertama kali dibuka
+  // State untuk "Human-in-the-Loop" (Data yang sedang diedit)
+  const [editData, setEditData] = useState<any>(null);
+
   const fetchHistory = async () => {
     try {
       const response = await axios.get("http://127.0.0.1:8001/api/expenses");
       setHistory(response.data);
-    } catch (error) {
-      console.error("Gagal mengambil riwayat:", error);
+    } catch (err) {
+      console.error("Gagal mengambil riwayat:", err);
     }
   };
 
-  // Jalankan fungsi fetchHistory otomatis saat web di-load
   useEffect(() => {
     fetchHistory();
   }, []);
 
-  // Menyimpan file yang dipilih user
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFile(e.target.files[0]);
+    if (e.target.files) setFile(e.target.files[0]);
+  };
+
+  // 1. Fungsi hanya untuk EKSTRAK (Belum simpan ke DB)
+  const handleExtract = async () => {
+    if (!file) return;
+    setLoading(true);
+    setEditData(null);
+    setError(null);
+    setIsSuccess(false);
+
+    const formData = new FormData();
+    formData.append("receipt", file);
+
+    try {
+      const response = await axios.post("http://127.0.0.1:8001/api/expenses/extract", formData);
+      // Masukkan hasil AI ke state editData agar bisa diedit di form
+      setEditData(response.data.data);
+    } catch (err: any) {
+      setError("Gagal membaca struk. Pastikan gambar jelas atau format file benar.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Mengirim file ke Laravel
-  const handleUpload = async () => {
-  if (!file) return;
-
-  setLoading(true);
-  setExpenseData(null);
-  setError(null); // Reset error setiap kali mulai upload baru
-
-  const formData = new FormData();
-  formData.append("receipt", file);
-
-  try {
-    const response = await axios.post("http://127.0.0.1:8001/api/expenses/extract", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-
-    setExpenseData(response.data.data);
-    fetchHistory();
-  } catch (err: any) {
-    // --- LOGIKA PENANGANAN ERROR ---
-    if (err.response && err.response.status === 409) {
-      // Menangkap pesan error dari Laravel (Data Duplikat)
-      setError(err.response.data.error);
-    } else {
-      // Menangkap error umum lainnya
-      setError("Terjadi kesalahan saat memproses struk. Silakan coba lagi.");
-    }
-    console.error("Error uploading file:", err);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  // 2. Fungsi untuk SIMPAN ke Database (Setelah divalidasi manusia)
+  const handleSaveToDatabase = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await axios.post("http://127.0.0.1:8001/api/expenses", editData);
       
+      setIsSuccess(true);
+      setEditData(null); // Tutup form setelah simpan
+      fetchHistory(); // Update dashboard
+      
+      // Hilangkan pesan sukses setelah 3 detik
+      setTimeout(() => setIsSuccess(false), 3000);
+    } catch (err: any) {
+      if (err.response?.status === 409) {
+        setError(err.response.data.error);
+      } else {
+        setError("Gagal menyimpan ke database.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-gray-50 p-8 font-sans">
@@ -85,11 +94,11 @@ export default function Home() {
           />
           <br />
           <button
-            onClick={handleUpload}
-            disabled={loading}
+            onClick={handleExtract} // PERUBAHAN: Sekarang memanggil handleExtract
+            disabled={loading || !file}
             className="w-full sm:w-auto px-8 py-3 bg-gray-900 text-white rounded-full font-semibold hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all shadow-md"
           >
-            {loading ? "AI Sedang Membaca Struk... ⏳" : "Upload & Ekstrak Data ✨"}
+            {loading && !editData ? "AI Sedang Membaca Struk... ⏳" : "Upload & Ekstrak Data ✨"}
           </button>
         </div>
 
@@ -108,37 +117,80 @@ export default function Home() {
           </div>
         )}
 
-        {/* Area Hasil */}
-        {expenseData && (
-          <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-xl animate-in fade-in duration-500">
-            <h2 className="text-xl font-bold text-green-800 mb-4 flex items-center gap-2">
-              ✅ Ekstrak Berhasil Disimpan!
-            </h2>
-            <div className="space-y-3 text-gray-700 text-lg">
-              <p className="flex justify-between border-b border-green-200 pb-2">
-                <span className="text-gray-500">Kategori</span>
-                <span className="font-semibold">{expenseData.category}</span>
-              </p>
-              <p className="flex justify-between border-b border-green-200 pb-2">
-                <span className="text-gray-500">Tanggal</span>
-                <span className="font-semibold">{expenseData.date}</span>
-              </p>
-              <p className="flex justify-between border-b border-green-200 pb-2">
-                <span className="text-gray-500">Total Harga</span>
-                <span className="font-bold text-green-700">Rp {expenseData.total.toLocaleString("id-ID")}</span>
-              </p>
+        {/* --- NOTIFIKASI SUKSES --- */}
+        {isSuccess && (
+          <div className="mt-6 p-4 bg-green-100 text-green-800 rounded-xl text-center font-bold animate-bounce shadow-sm">
+            🎉 Data tervalidasi berhasil disimpan ke Database!
+          </div>
+        )}
 
-              <div className="mt-6">
-                <h3 className="font-bold text-gray-800 mb-3 text-sm uppercase tracking-wider">Daftar Barang:</h3>
-                <ul className="space-y-2 bg-white p-4 rounded-lg border border-green-100 shadow-sm">
-                  {expenseData.items.map((item: any, index: number) => (
-                    <li key={index} className="flex justify-between text-base">
-                      <span className="text-gray-600">{item.name}</span>
+        {/* --- FORM VALIDASI (HUMAN-IN-THE-LOOP) --- */}
+        {editData && (
+          <div className="mt-8 p-6 bg-amber-50 border border-amber-200 rounded-xl animate-in fade-in zoom-in duration-300">
+            <h2 className="text-xl font-bold text-amber-800 mb-4 flex items-center gap-2">
+              🔍 Validasi Data AI
+            </h2>
+            <p className="text-xs text-amber-700 mb-6 bg-amber-100 p-2 rounded">
+              AI telah membaca strukmu. Silakan periksa kembali dan edit jika ada kesalahan sebelum disimpan.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-amber-900 uppercase mb-1">Kategori</label>
+                <select 
+                  value={editData.category}
+                  onChange={(e) => setEditData({...editData, category: e.target.value})}
+                  className="w-full p-2.5 bg-white border border-amber-200 rounded-lg text-gray-800"
+                >
+                  <option value="Makanan">Makanan</option>
+                  <option value="Transportasi">Transportasi</option>
+                  <option value="Pakaian">Pakaian</option>
+                  <option value="Kesehatan">Kesehatan</option>
+                  <option value="Lainnya">Lainnya</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-amber-900 uppercase mb-1">Tanggal</label>
+                  <input 
+                    type="date" 
+                    value={editData.date}
+                    onChange={(e) => setEditData({...editData, date: e.target.value})}
+                    className="w-full p-2.5 bg-white border border-amber-200 rounded-lg text-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-amber-900 uppercase mb-1">Total (Rp)</label>
+                  <input 
+                    type="number" 
+                    value={editData.total}
+                    onChange={(e) => setEditData({...editData, total: parseInt(e.target.value) || 0})}
+                    className="w-full p-2.5 bg-white border border-amber-200 rounded-lg font-bold text-green-700"
+                  />
+                </div>
+              </div>
+
+              {/* Tampilkan daftar barang sebagai referensi (readonly) */}
+              <div className="mt-4 pt-4 border-t border-amber-200">
+                <h3 className="font-bold text-amber-900 mb-2 text-xs uppercase tracking-wider">Daftar Barang Terdeteksi:</h3>
+                <ul className="space-y-1 text-sm bg-white/50 p-3 rounded border border-amber-100">
+                  {editData.items && editData.items.map((item: any, index: number) => (
+                    <li key={index} className="flex justify-between text-gray-700">
+                      <span>{item.name}</span>
                       <span className="font-medium">Rp {item.price.toLocaleString("id-ID")}</span>
                     </li>
                   ))}
                 </ul>
               </div>
+
+              <button
+                onClick={handleSaveToDatabase}
+                disabled={loading}
+                className="w-full mt-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 disabled:bg-green-400 transition-all shadow-lg shadow-green-200 flex justify-center items-center gap-2"
+              >
+                {loading ? "Menyimpan... ⏳" : "Konfirmasi & Simpan ke Database ✅"}
+              </button>
             </div>
           </div>
         )}
