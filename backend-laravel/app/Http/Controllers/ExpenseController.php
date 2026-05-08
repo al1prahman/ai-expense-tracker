@@ -27,7 +27,7 @@ class ExpenseController extends Controller
     public function extract(Request $request)
     {
         $request->validate([
-            'receipt' => 'required|image|mimes:jpeg,png,jpg|max:5120',
+            'receipt' => 'required|image|mimes:jpeg,png,jpg|max:15360',
         ]);
 
         $file = $request->file('receipt');

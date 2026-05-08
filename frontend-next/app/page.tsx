@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
+// Import library untuk grafik
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
@@ -9,8 +11,6 @@ export default function Home() {
   const [history, setHistory] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
-
-  // State untuk "Human-in-the-Loop" (Data yang sedang diedit)
   const [editData, setEditData] = useState<any>(null);
 
   const fetchHistory = async () => {
@@ -27,10 +27,13 @@ export default function Home() {
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) setFile(e.target.files[0]);
+    if (e.target.files && e.target.files.length > 0) {
+      setFile(e.target.files[0]);
+    } else {
+      setFile(null);
+    }
   };
 
-  // 1. Fungsi hanya untuk EKSTRAK (Belum simpan ke DB)
   const handleExtract = async () => {
     if (!file) return;
     setLoading(true);
@@ -43,7 +46,6 @@ export default function Home() {
 
     try {
       const response = await axios.post("http://127.0.0.1:8001/api/expenses/extract", formData);
-      // Masukkan hasil AI ke state editData agar bisa diedit di form
       setEditData(response.data.data);
     } catch (err: any) {
       setError("Gagal membaca struk. Pastikan gambar jelas atau format file benar.");
@@ -52,7 +54,6 @@ export default function Home() {
     }
   };
 
-  // 2. Fungsi untuk SIMPAN ke Database (Setelah divalidasi manusia)
   const handleSaveToDatabase = async () => {
     try {
       setLoading(true);
@@ -60,10 +61,9 @@ export default function Home() {
       const response = await axios.post("http://127.0.0.1:8001/api/expenses", editData);
       
       setIsSuccess(true);
-      setEditData(null); // Tutup form setelah simpan
-      fetchHistory(); // Update dashboard
+      setEditData(null);
+      fetchHistory();
       
-      // Hilangkan pesan sukses setelah 3 detik
       setTimeout(() => setIsSuccess(false), 3000);
     } catch (err: any) {
       if (err.response?.status === 409) {
@@ -75,6 +75,28 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+  // ==========================================
+  // LOGIKA PENGOLAHAN DATA GRAFIK (BARU)
+  // ==========================================
+  const getChartData = () => {
+    const aggregated: Record<string, number> = {};
+    history.forEach((item) => {
+      if (aggregated[item.category]) {
+        aggregated[item.category] += item.total;
+      } else {
+        aggregated[item.category] = item.total;
+      }
+    });
+
+    return Object.keys(aggregated).map((key) => ({
+      name: key,
+      value: aggregated[key],
+    }));
+  };
+
+  const chartData = getChartData();
+  const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"]; // Biru, Hijau, Kuning, Merah, Ungu
 
   return (
     <main className="min-h-screen bg-gray-50 p-8 font-sans">
@@ -88,13 +110,19 @@ export default function Home() {
           <input
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={handleFileChange}
-            className="mb-6 w-full max-w-xs text-sm text-gray-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
+            className="mb-4 w-full max-w-xs text-sm text-gray-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
           />
+          
+          {file && (
+            <p className="text-sm text-green-600 font-bold mb-4 bg-green-100 p-2 rounded-lg inline-block">
+              ✅ File siap: {file.name}
+            </p>
+          )}
           <br />
+
           <button
-            onClick={handleExtract} // PERUBAHAN: Sekarang memanggil handleExtract
+            onClick={handleExtract}
             disabled={loading || !file}
             className="w-full sm:w-auto px-8 py-3 bg-gray-900 text-white rounded-full font-semibold hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all shadow-md"
           >
@@ -102,14 +130,9 @@ export default function Home() {
           </button>
         </div>
 
-        {/* --- TAMPILAN ERROR (MERAH) --- */}
+        {/* Area Error & Success */}
         {error && (
           <div className="mt-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-xl flex items-start space-x-3 animate-in fade-in slide-in-from-top-4 duration-300">
-            <div className="flex-shrink-0 mt-0.5">
-              <svg className="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </div>
             <div>
               <p className="text-sm font-bold text-red-800">Gagal Memproses Struk</p>
               <p className="text-xs text-red-700 mt-1">{error}</p>
@@ -117,23 +140,16 @@ export default function Home() {
           </div>
         )}
 
-        {/* --- NOTIFIKASI SUKSES --- */}
         {isSuccess && (
           <div className="mt-6 p-4 bg-green-100 text-green-800 rounded-xl text-center font-bold animate-bounce shadow-sm">
             🎉 Data tervalidasi berhasil disimpan ke Database!
           </div>
         )}
 
-        {/* --- FORM VALIDASI (HUMAN-IN-THE-LOOP) --- */}
+        {/* Area Validasi */}
         {editData && (
           <div className="mt-8 p-6 bg-amber-50 border border-amber-200 rounded-xl animate-in fade-in zoom-in duration-300">
-            <h2 className="text-xl font-bold text-amber-800 mb-4 flex items-center gap-2">
-              🔍 Validasi Data AI
-            </h2>
-            <p className="text-xs text-amber-700 mb-6 bg-amber-100 p-2 rounded">
-              AI telah membaca strukmu. Silakan periksa kembali dan edit jika ada kesalahan sebelum disimpan.
-            </p>
-
+            <h2 className="text-xl font-bold text-amber-800 mb-4">🔍 Validasi Data AI</h2>
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-amber-900 uppercase mb-1">Kategori</label>
@@ -171,25 +187,12 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Tampilkan daftar barang sebagai referensi (readonly) */}
-              <div className="mt-4 pt-4 border-t border-amber-200">
-                <h3 className="font-bold text-amber-900 mb-2 text-xs uppercase tracking-wider">Daftar Barang Terdeteksi:</h3>
-                <ul className="space-y-1 text-sm bg-white/50 p-3 rounded border border-amber-100">
-                  {editData.items && editData.items.map((item: any, index: number) => (
-                    <li key={index} className="flex justify-between text-gray-700">
-                      <span>{item.name}</span>
-                      <span className="font-medium">Rp {item.price.toLocaleString("id-ID")}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
               <button
                 onClick={handleSaveToDatabase}
                 disabled={loading}
-                className="w-full mt-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 disabled:bg-green-400 transition-all shadow-lg shadow-green-200 flex justify-center items-center gap-2"
+                className="w-full mt-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 disabled:bg-green-400 transition-all shadow-lg"
               >
-                {loading ? "Menyimpan... ⏳" : "Konfirmasi & Simpan ke Database ✅"}
+                {loading ? "Menyimpan... ⏳" : "Konfirmasi & Simpan ✅"}
               </button>
             </div>
           </div>
@@ -207,6 +210,34 @@ export default function Home() {
             Rp {history.reduce((sum, item) => sum + item.total, 0).toLocaleString("id-ID")}
           </h3>
         </div>
+
+        {/* --- GRAFIK PENGELUARAN (BARU) --- */}
+        {chartData.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
+            <h3 className="text-center font-bold text-gray-700 mb-4">Distribusi per Kategori</h3>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => `Rp ${value.toLocaleString("id-ID")}`} />
+                  <Legend verticalAlign="bottom" height={36} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
 
         {/* Tabel Riwayat */}
         <h3 className="text-lg font-bold text-gray-700 mb-4">Riwayat Struk Terakhir</h3>
