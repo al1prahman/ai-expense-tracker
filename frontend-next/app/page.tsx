@@ -59,6 +59,7 @@ export default function Home() {
           <input
             type="file"
             accept="image/*"
+            capture="environment"
             onChange={handleFileChange}
             className="mb-6 w-full max-w-xs text-sm text-gray-600 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer"
           />
