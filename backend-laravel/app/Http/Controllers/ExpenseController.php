@@ -35,7 +35,6 @@ class ExpenseController extends Controller
         $file = $request->file('receipt');
 
         try {
-            // Matikan batas waktu bawaan PHP
             set_time_limit(300);
 
             // 2. Kirim gambar ke Python AI Service
@@ -43,20 +42,34 @@ class ExpenseController extends Controller
                 'file', file_get_contents($file), $file->getClientOriginalName()
             )->post('http://127.0.0.1:8000/extract');
 
-            // Cek jika Python service mati atau error
             if ($response->failed()) {
                 return response()->json(['error' => 'Gagal terhubung ke AI Service'], 500);
             }
 
             $aiData = $response->json();
 
-            // Cek jika AI Python mengembalikan status error
             if (isset($aiData['status']) && $aiData['status'] !== 'success') {
                 return response()->json(['error' => 'AI gagal: ' . ($aiData['message'] ?? 'Kesalahan tidak diketahui')], 500);
             }
 
             // Ambil data JSON yang sudah dirapikan AI
             $parsedData = $aiData['parsed_data'];
+
+            // =========================================================
+            // FITUR BARU: SATPAM PENCEGAH DUPLIKAT
+            // =========================================================
+            // Cek apakah ada struk di tanggal yang sama & total harga yang sama
+            $isDuplicate = Expense::where('date', $parsedData['date'])
+                                  ->where('total', $parsedData['total'])
+                                  ->exists();
+
+            if ($isDuplicate) {
+                // Jika duplikat, hentikan proses dan kembalikan error 409 (Conflict)
+                return response()->json([
+                    'error' => 'Gagal: Struk ini sepertinya sudah pernah di-scan sebelumnya (Data Duplikat).'
+                ], 409);
+            }
+            // =========================================================
 
             // 3. Simpan hasil cerdas dari AI ke Database Supabase
             $expense = Expense::create([

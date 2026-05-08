@@ -7,8 +7,8 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [expenseData, setExpenseData] = useState<any>(null);
-
   const [history, setHistory] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   // Fungsi untuk mengambil data dari database saat halaman pertama kali dibuka
   const fetchHistory = async () => {
@@ -34,36 +34,36 @@ export default function Home() {
 
   // Mengirim file ke Laravel
   const handleUpload = async () => {
-    if (!file) {
-      alert("Pilih file struk terlebih dahulu!");
-      return;
+  if (!file) return;
+
+  setLoading(true);
+  setExpenseData(null);
+  setError(null); // Reset error setiap kali mulai upload baru
+
+  const formData = new FormData();
+  formData.append("receipt", file);
+
+  try {
+    const response = await axios.post("http://127.0.0.1:8001/api/expenses/extract", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    setExpenseData(response.data.data);
+    fetchHistory();
+  } catch (err: any) {
+    // --- LOGIKA PENANGANAN ERROR ---
+    if (err.response && err.response.status === 409) {
+      // Menangkap pesan error dari Laravel (Data Duplikat)
+      setError(err.response.data.error);
+    } else {
+      // Menangkap error umum lainnya
+      setError("Terjadi kesalahan saat memproses struk. Silakan coba lagi.");
     }
-
-    setLoading(true);
-    setExpenseData(null);
-
-    const formData = new FormData();
-    formData.append("receipt", file);
-
-    try {
-      // Menembak ke API Laravel (Pastikan port Laravel-mu 8001)
-      const response = await axios.post("http://127.0.0.1:8001/api/expenses/extract", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Accept: "application/json",
-        },
-      });
-
-      // Menyimpan hasil balasan ke dalam state
-      setExpenseData(response.data.data);
-      fetchHistory();
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      alert("Terjadi kesalahan saat memproses struk. Cek console log.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    console.error("Error uploading file:", err);
+  } finally {
+    setLoading(false);
+  }
+};
 
       
 
@@ -92,6 +92,21 @@ export default function Home() {
             {loading ? "AI Sedang Membaca Struk... ⏳" : "Upload & Ekstrak Data ✨"}
           </button>
         </div>
+
+        {/* --- TAMPILAN ERROR (MERAH) --- */}
+        {error && (
+          <div className="mt-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-xl flex items-start space-x-3 animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="flex-shrink-0 mt-0.5">
+              <svg className="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-red-800">Gagal Memproses Struk</p>
+              <p className="text-xs text-red-700 mt-1">{error}</p>
+            </div>
+          </div>
+        )}
 
         {/* Area Hasil */}
         {expenseData && (
@@ -128,41 +143,42 @@ export default function Home() {
           </div>
         )}
       </div>
-    {/* --- TAMBAHAN BARU: AREA DASHBOARD & RIWAYAT --- */}
-        <div className="mt-12 border-t border-gray-200 pt-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">📊 Dashboard Pengeluaran</h2>
-          
-          {/* Kartu Total Pengeluaran */}
-          <div className="bg-blue-600 rounded-2xl p-6 text-white shadow-lg mb-8">
-            <p className="text-blue-100 text-sm font-medium uppercase tracking-wider mb-1">Total Keseluruhan</p>
-            <h3 className="text-4xl font-extrabold">
-              Rp {history.reduce((sum, item) => sum + item.total, 0).toLocaleString("id-ID")}
-            </h3>
-          </div>
 
-          {/* Tabel Riwayat */}
-          <h3 className="text-lg font-bold text-gray-700 mb-4">Riwayat Struk Terakhir</h3>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            {history.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">Belum ada data pengeluaran.</p>
-            ) : (
-              <ul className="divide-y divide-gray-100">
-                {history.map((item) => (
-                  <li key={item.id} className="p-4 hover:bg-gray-50 transition-colors flex justify-between items-center">
-                    <div>
-                      <p className="font-semibold text-gray-800">{item.category}</p>
-                      <p className="text-sm text-gray-500">{item.date}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-gray-900">Rp {item.total.toLocaleString("id-ID")}</p>
-                      <p className="text-xs text-gray-400">{item.items?.length || 0} barang</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+      {/* --- AREA DASHBOARD & RIWAYAT --- */}
+      <div className="mt-12 border-t border-gray-200 pt-8 max-w-2xl mx-auto">
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">📊 Dashboard Pengeluaran</h2>
+        
+        {/* Kartu Total Pengeluaran */}
+        <div className="bg-blue-600 rounded-2xl p-6 text-white shadow-lg mb-8">
+          <p className="text-blue-100 text-sm font-medium uppercase tracking-wider mb-1">Total Keseluruhan</p>
+          <h3 className="text-4xl font-extrabold">
+            Rp {history.reduce((sum, item) => sum + item.total, 0).toLocaleString("id-ID")}
+          </h3>
         </div>
+
+        {/* Tabel Riwayat */}
+        <h3 className="text-lg font-bold text-gray-700 mb-4">Riwayat Struk Terakhir</h3>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          {history.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">Belum ada data pengeluaran.</p>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {history.map((item) => (
+                <li key={item.id} className="p-4 hover:bg-gray-50 transition-colors flex justify-between items-center">
+                  <div>
+                    <p className="font-semibold text-gray-800">{item.category}</p>
+                    <p className="text-sm text-gray-500">{item.date}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-gray-900">Rp {item.total.toLocaleString("id-ID")}</p>
+                    <p className="text-xs text-gray-400">{item.items?.length || 0} barang</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
     </main>
   );
 }
