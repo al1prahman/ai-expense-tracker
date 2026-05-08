@@ -8,7 +8,23 @@ use App\Models\Expense;
 
 class ExpenseController extends Controller
 {
-    // Fungsi untuk menerima gambar, kirim ke AI, dan simpan ke DB
+    // =====================================================================
+    // 1. Fungsi untuk mengambil semua data (untuk History/Dashboard Next.js)
+    // =====================================================================
+    public function index()
+    {
+        try {
+            // Mengambil semua data pengeluaran, diurutkan dari yang terbaru
+            $expenses = Expense::orderBy('date', 'desc')->get();
+            return response()->json($expenses, 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Gagal mengambil data: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // =====================================================================
+    // 2. Fungsi untuk menerima gambar, kirim ke AI, dan simpan ke DB
+    // =====================================================================
     public function extractAndSave(Request $request)
     {
         // 1. Validasi input
@@ -22,7 +38,7 @@ class ExpenseController extends Controller
             // Matikan batas waktu bawaan PHP
             set_time_limit(300);
 
-            // 2. Kirim gambar ke Python AI Service (Cukup SATU KALI saja dengan timeout)
+            // 2. Kirim gambar ke Python AI Service
             $response = Http::timeout(120)->attach(
                 'file', file_get_contents($file), $file->getClientOriginalName()
             )->post('http://127.0.0.1:8000/extract');
@@ -34,6 +50,12 @@ class ExpenseController extends Controller
 
             $aiData = $response->json();
 
+            // Cek jika AI Python mengembalikan status error
+            if (isset($aiData['status']) && $aiData['status'] !== 'success') {
+                return response()->json(['error' => 'AI gagal: ' . ($aiData['message'] ?? 'Kesalahan tidak diketahui')], 500);
+            }
+
+            // Ambil data JSON yang sudah dirapikan AI
             $parsedData = $aiData['parsed_data'];
 
             // 3. Simpan hasil cerdas dari AI ke Database Supabase
@@ -53,12 +75,5 @@ class ExpenseController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => 'Terjadi kesalahan sistem: ' . $e->getMessage()], 500);
         }
-    }
-
-    // Fungsi tambahan untuk mengambil semua data (untuk grafik di Next.js nanti)
-    public function index()
-    {
-        $expenses = Expense::orderBy('date', 'desc')->get();
-        return response()->json($expenses);
     }
 }

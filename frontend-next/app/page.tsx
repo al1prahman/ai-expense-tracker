@@ -1,12 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect} from "react";
 import axios from "axios";
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [expenseData, setExpenseData] = useState<any>(null);
+
+  const [history, setHistory] = useState<any[]>([]);
+
+  // Fungsi untuk mengambil data dari database saat halaman pertama kali dibuka
+  const fetchHistory = async () => {
+    try {
+      const response = await axios.get("http://127.0.0.1:8001/api/expenses");
+      setHistory(response.data);
+    } catch (error) {
+      console.error("Gagal mengambil riwayat:", error);
+    }
+  };
+
+  // Jalankan fungsi fetchHistory otomatis saat web di-load
+  useEffect(() => {
+    fetchHistory();
+  }, []);
 
   // Menyimpan file yang dipilih user
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,6 +56,7 @@ export default function Home() {
 
       // Menyimpan hasil balasan ke dalam state
       setExpenseData(response.data.data);
+      fetchHistory();
     } catch (error) {
       console.error("Error uploading file:", error);
       alert("Terjadi kesalahan saat memproses struk. Cek console log.");
@@ -46,6 +64,8 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+      
 
   return (
     <main className="min-h-screen bg-gray-50 p-8 font-sans">
@@ -108,6 +128,41 @@ export default function Home() {
           </div>
         )}
       </div>
+    {/* --- TAMBAHAN BARU: AREA DASHBOARD & RIWAYAT --- */}
+        <div className="mt-12 border-t border-gray-200 pt-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">📊 Dashboard Pengeluaran</h2>
+          
+          {/* Kartu Total Pengeluaran */}
+          <div className="bg-blue-600 rounded-2xl p-6 text-white shadow-lg mb-8">
+            <p className="text-blue-100 text-sm font-medium uppercase tracking-wider mb-1">Total Keseluruhan</p>
+            <h3 className="text-4xl font-extrabold">
+              Rp {history.reduce((sum, item) => sum + item.total, 0).toLocaleString("id-ID")}
+            </h3>
+          </div>
+
+          {/* Tabel Riwayat */}
+          <h3 className="text-lg font-bold text-gray-700 mb-4">Riwayat Struk Terakhir</h3>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            {history.length === 0 ? (
+              <p className="text-center text-gray-500 py-8">Belum ada data pengeluaran.</p>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {history.map((item) => (
+                  <li key={item.id} className="p-4 hover:bg-gray-50 transition-colors flex justify-between items-center">
+                    <div>
+                      <p className="font-semibold text-gray-800">{item.category}</p>
+                      <p className="text-sm text-gray-500">{item.date}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-gray-900">Rp {item.total.toLocaleString("id-ID")}</p>
+                      <p className="text-xs text-gray-400">{item.items?.length || 0} barang</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
     </main>
   );
 }

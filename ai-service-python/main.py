@@ -1,24 +1,20 @@
 import cv2
 import numpy as np
 from fastapi import FastAPI, File, UploadFile
-import pytesseract
 from PIL import Image
 import io
 import json
 import os
 from dotenv import load_dotenv
 
-# Load variabel dari file .env
-load_dotenv()
-
 # Import library Gemini versi terbaru
 from google import genai
 from google.genai import types
 
-# 1. Lokasi instalasi Tesseract kamu
-pytesseract.pytesseract.tesseract_cmd = r'D:\tesseract\tesseract.exe'
+# Load variabel dari file .env
+load_dotenv()
 
-# 2. Konfigurasi Gemini API (Sekarang mengambil dari file .env secara rahasia)
+# Konfigurasi Gemini API
 GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY")
 client = genai.Client(api_key=GOOGLE_API_KEY)
 
@@ -28,40 +24,27 @@ app = FastAPI()
 def read_root():
     return {"message": "AI Expense Tracker Service is running dengan SDK Baru!"}
 
-def preprocess_receipt(image_bytes):
-    # 1. Konversi byte gambar mentah menjadi array NumPy agar bisa dibaca OpenCV
-    nparr = np.frombuffer(image_bytes, np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-
-    # 2. Ubah gambar menjadi Grayscale (Hitam Putih)
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-    # 3. Terapkan Adaptive Thresholding 
-    # (Ini sangat ampuh untuk nota yang bayangannya tidak rata atau terlipat)
-    thresh = cv2.adaptiveThreshold(
-        gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
-    )
-
-    # 4. Kembalikan lagi ke format byte agar bisa dikirim ke Gemini
-    is_success, buffer = cv2.imencode(".jpg", thresh)
-    return buffer.tobytes()
-
 @app.post("/extract")
 async def extract_receipt(file: UploadFile = File(...)):
     try:
-        # Baca gambar mentah
         raw_image_bytes = await file.read()
         
-        # PROSES MAGIC COMPUTER VISION DI SINI ✨
-        cleaned_image_bytes = preprocess_receipt(raw_image_bytes)
+        # --- [MULAI] BULLETPROOF IMAGE PROCESSING ---
+        nparr = np.frombuffer(raw_image_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-        # Ubah gambar yang sudah bersih menjadi objek PIL Image untuk Gemini
-        image = Image.open(io.BytesIO(cleaned_image_bytes))
-
-        # Ekstrak teks mentah dari gambar
-        image_bytes = await file.read()
-        image = Image.open(io.BytesIO(image_bytes))
-        raw_text = pytesseract.image_to_string(image)
+        if img is not None:
+            # Jika OpenCV berhasil baca: Bersihkan gambar (Grayscale & Thresholding)
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            thresh = cv2.adaptiveThreshold(
+                gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
+            )
+            # Transfer langsung pikselnya ke PIL Image
+            image = Image.fromarray(thresh)
+        else:
+            # Jika OpenCV gagal (efek kompresi WhatsApp), paksa PIL membacanya
+            image = Image.open(io.BytesIO(raw_image_bytes)).convert("RGB")
+        # --- [SELESAI] BULLETPROOF IMAGE PROCESSING ---
 
         # Instruksi untuk AI
         prompt = """
@@ -81,10 +64,10 @@ async def extract_receipt(file: UploadFile = File(...)):
         }
         """
 
-        # Memanggil model Gemini menggunakan SDK baru
+        # PERBAIKAN: Mengirim prompt DAN image ke Gemini!
         response = client.models.generate_content(
             model='gemini-2.5-flash',
-            contents=prompt,
+            contents=[prompt, image],
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
             ),
@@ -93,10 +76,10 @@ async def extract_receipt(file: UploadFile = File(...)):
         # Mengubah response JSON string menjadi Python Dictionary
         parsed_data = json.loads(response.text)
 
+        # PERBAIKAN: Menghapus raw_text yang membuat error
         return {
             "status": "success",
             "filename": file.filename,
-            "raw_text": raw_text,
             "parsed_data": parsed_data
         }
     except Exception as e:
