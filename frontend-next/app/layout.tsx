@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
+import ClientLayout from "@/components/ClientLayout";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,14 +17,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-[#090E17] text-white flex`}>
-        {/* Sidebar akan selalu diam di kiri */}
-        <Sidebar />
-        
-        {/* Area konten utama akan mengisi sisa layar di sebelah kanan Sidebar */}
-        <div className="flex-1 ml-[220px] min-h-screen">
+      <body className={inter.className}>
+        {/* Kita bungkus seluruh aplikasi dengan ClientLayout yang baru kita buat */}
+        <ClientLayout>
           {children}
-        </div>
+        </ClientLayout>
       </body>
     </html>
   );
