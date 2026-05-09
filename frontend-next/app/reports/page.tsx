@@ -13,6 +13,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxTrigger,
+  ComboboxValue,
+} from "@/components/ui/combobox";
 
 export default function ReportsPage() {
   const [expenses, setExpenses] = useState<any[]>([]);
@@ -64,6 +74,7 @@ export default function ReportsPage() {
 
   const glassCardClass = "bg-white/70 dark:bg-slate-800/40 backdrop-blur-xl border border-slate-200/60 dark:border-white/10 shadow-2xl transition-all duration-300 overflow-hidden";
   const inputClass = "w-full bg-slate-50 dark:bg-[#0F172A]/60 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all";
+  const reportCategories = ["Semua", "Makanan", "Transportasi", "Pakaian", "Kesehatan", "Lainnya"];
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#090E17] text-slate-900 dark:text-[#F8FAFC] font-sans pb-12 transition-colors duration-300 relative">
@@ -122,18 +133,38 @@ export default function ReportsPage() {
                 <label className="text-xs font-bold text-slate-500 dark:text-[#94A3B8] uppercase flex items-center gap-2">
                   <Tag size={14} /> {t('category')}
                 </label>
-                <select 
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  className={`${inputClass} appearance-none h-[42px]`}
+                <div className="flex-1 w-full space-y-2">
+                <label className="text-xs font-bold text-slate-500 dark:text-[#94A3B8] uppercase flex items-center gap-2">
+                  <Tag size={14} /> {t('category')}
+                </label>
+                <Combobox 
+                  items={reportCategories} 
+                  value={categoryFilter} 
+                  onValueChange={(val) => setCategoryFilter(val || "Semua")}
                 >
-                  <option value="Semua">{t('allCategories')}</option>
-                  <option value="Makanan">Makanan</option>
-                  <option value="Transportasi">Transportasi</option>
-                  <option value="Pakaian">Pakaian</option>
-                  <option value="Kesehatan">Kesehatan</option>
-                  <option value="Lainnya">Lainnya</option>
-                </select>
+                  <ComboboxTrigger 
+                    render={
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-between font-normal h-[42px] border-slate-200 dark:border-white/10 dark:bg-[#0F172A]/60 hover:bg-slate-100 dark:hover:bg-white/5"
+                      >
+                        <ComboboxValue />
+                      </Button>
+                    } 
+                  />
+                  <ComboboxContent className="dark:bg-slate-800 border-slate-200 dark:border-white/10 rounded-xl shadow-xl z-50">
+                    <ComboboxInput showTrigger={false} placeholder="Cari..." className="border-b dark:border-white/10" />
+                    <ComboboxEmpty className="py-6 text-center text-sm text-slate-500">Tidak ada kategori.</ComboboxEmpty>
+                    <ComboboxList>
+                      {(item) => (
+                        <ComboboxItem key={item} value={item} className="cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 data-[highlighted]:bg-slate-100 dark:data-[highlighted]:bg-white/10">
+                          {item === "Semua" ? "Semua Kategori" : item}
+                        </ComboboxItem>
+                      )}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
+              </div>
               </div>
               
               <Button 
@@ -226,7 +257,6 @@ export default function ReportsPage() {
             </div>
           </CardContent>
         </Card>
-
       </main>
     </div>
   );
