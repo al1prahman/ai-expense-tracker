@@ -1,10 +1,56 @@
+'use client';
+import { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import axios from 'axios';
 import Navbar from '@/components/Navbar';
-import { Cloud, Camera, Image as ImageIcon, FileText, Sparkles, ArrowRight, Lock } from 'lucide-react';
+import { Cloud, Camera, Image as ImageIcon, FileText, Sparkles, ArrowRight, Lock, Loader2 } from 'lucide-react';
 
 export default function UploadPage() {
+  const router = useRouter();
+  const [file, setFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Referensi untuk input file tersembunyi
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setFile(e.target.files[0]);
+      setError(null);
+    }
+  };
+
+  const handleExtract = async () => {
+    if (!file) {
+      setError("Silakan pilih file terlebih dahulu.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    const formData = new FormData();
+    formData.append("receipt", file);
+
+    try {
+      const response = await axios.post("http://127.0.0.1:8001/api/expenses/extract", formData);
+      
+      // Simpan hasil AI ke penyimpanan lokal browser sementara
+      localStorage.setItem('pendingExpense', JSON.stringify(response.data.data));
+      
+      // Pindah ke halaman validasi
+      router.push('/validation');
+    } catch (err: any) {
+      setError("Gagal memproses struk. Pastikan gambar jelas.");
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#090E17] text-[#F8FAFC] font-sans pb-12">
-      <Navbar title="" />
+      <Navbar title="Upload Center" />
       
       <main className="max-w-3xl mx-auto mt-8 px-6">
         <div className="text-center mb-10">
@@ -12,7 +58,10 @@ export default function UploadPage() {
           <p className="text-[#94A3B8]">Upload your financial documents for instant AI verification<br/>and portfolio allocation.</p>
         </div>
 
-        {/* Main Glass Card */}
+        {/* Input File Tersembunyi */}
+        <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+        <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} onChange={handleFileChange} className="hidden" />
+
         <div className="bg-slate-800/40 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
           
           {/* Dropzone */}
@@ -24,52 +73,54 @@ export default function UploadPage() {
             <p className="text-[#94A3B8] text-sm mb-6">PDF, PNG, and JPEG supported (Max 25MB)</p>
             
             <div className="flex space-x-4">
-              <button className="flex items-center space-x-2 px-5 py-2.5 bg-white/5 border border-white/10 rounded-[10px] hover:bg-white/10 transition-colors text-sm font-medium">
+              <button onClick={() => cameraInputRef.current?.click()} className="flex items-center space-x-2 px-5 py-2.5 bg-white/5 border border-white/10 rounded-[10px] hover:bg-white/10 transition-colors text-sm font-medium">
                 <Camera size={16} />
                 <span>Camera Capture</span>
               </button>
-              <button className="flex items-center space-x-2 px-5 py-2.5 bg-white/5 border border-white/10 rounded-[10px] hover:bg-white/10 transition-colors text-sm font-medium">
+              <button onClick={() => fileInputRef.current?.click()} className="flex items-center space-x-2 px-5 py-2.5 bg-white/5 border border-white/10 rounded-[10px] hover:bg-white/10 transition-colors text-sm font-medium">
                 <ImageIcon size={16} />
                 <span>Gallery Upload</span>
               </button>
             </div>
           </div>
 
-          {/* Uploaded File Row */}
-          <div className="flex items-center justify-between p-4 bg-slate-800/60 border border-white/10 rounded-xl mb-4">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-[#090E17] rounded-lg">
-                <FileText className="text-slate-300" size={24} />
+          {/* Indikator File */}
+          {file && (
+            <div className="flex items-center justify-between p-4 bg-slate-800/60 border border-white/10 rounded-xl mb-4">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-[#090E17] rounded-lg">
+                  <FileText className="text-slate-300" size={24} />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm truncate max-w-[200px]">{file.name}</p>
+                  <p className="text-[#94A3B8] text-xs">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                </div>
               </div>
-              <div>
-                <p className="font-semibold text-sm">Receipt_Q4_2024.pdf</p>
-                <p className="text-[#94A3B8] text-xs">1.2 MB</p>
-              </div>
+              <span className="px-3 py-1 bg-green-500/20 text-green-400 text-[11px] font-bold uppercase rounded-md border border-green-500/20">
+                File Ready
+              </span>
             </div>
-            <span className="px-3 py-1 bg-green-500/20 text-green-400 text-[11px] font-bold uppercase rounded-md border border-green-500/20">
-              File Ready
-            </span>
-          </div>
+          )}
 
-          {/* AI Insight */}
-          <div className="flex items-start space-x-4 p-5 bg-blue-500/10 border border-cyan-500/20 rounded-xl mb-6">
-            <Sparkles className="text-cyan-400 mt-0.5 shrink-0" size={20} />
-            <div>
-              <h4 className="font-semibold text-cyan-50 text-sm mb-1">AI Insight Detected</h4>
-              <p className="text-[#94A3B8] text-sm">This document matches your "Corporate Travel" category with 88% confidence.</p>
+          {error && (
+            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm text-center">
+              {error}
             </div>
-          </div>
+          )}
 
-          {/* CTA Button */}
-          <button className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-[#3B82F6] to-[#06B6D4] text-white font-semibold rounded-[10px] py-4 shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:opacity-90 transition-opacity mb-4">
-            <span>Scan Receipt</span>
-            <ArrowRight size={18} />
+          {/* Tombol Ekstrak */}
+          <button 
+            onClick={handleExtract}
+            disabled={loading || !file}
+            className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-[#3B82F6] to-[#06B6D4] text-white font-semibold rounded-[10px] py-4 shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:opacity-90 disabled:opacity-50 transition-opacity mb-4"
+          >
+            {loading ? <Loader2 className="animate-spin" size={18} /> : <span>Scan Receipt</span>}
+            {!loading && <ArrowRight size={18} />}
           </button>
           
-          <p className="text-center text-[#94A3B8] text-xs animate-pulse">Analyzing Market Trends...</p>
+          {loading && <p className="text-center text-[#94A3B8] text-xs animate-pulse">Analyzing Transaction Data...</p>}
         </div>
 
-        {/* Footer */}
         <div className="mt-8 flex items-center justify-center space-x-2 text-slate-600">
           <Lock size={14} />
           <span className="text-xs">Enterprise-grade AES-256 Encryption active</span>
