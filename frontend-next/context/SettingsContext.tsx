@@ -7,8 +7,10 @@ type Theme = 'dark' | 'light';
 interface SettingsContextType {
   language: Language;
   theme: Theme;
+  userName: string;
   setLanguage: (lang: Language) => void;
   setTheme: (theme: Theme) => void;
+  setUserName: (name: string) => void;
   saveSettings: (lang: Language, theme: Theme) => void;
   t: (key: string) => string;
 }
@@ -73,13 +75,18 @@ const dictionary = {
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>('en');
   const [theme, setThemeState] = useState<Theme>('dark');
+  const [userName, setUserNameState] = useState<string>('User'); // State baru untuk nama user
 
   useEffect(() => {
     const savedLang = localStorage.getItem('app_lang') as Language;
     const savedTheme = localStorage.getItem('app_theme') as Theme;
+    const savedName = localStorage.getItem('user_profile_name'); // Cek nama yang tersimpan
+
     if (savedLang) setLanguageState(savedLang);
     if (savedTheme) applyTheme(savedTheme);
     else document.documentElement.classList.add('dark');
+    
+    if (savedName) setUserNameState(savedName); // Set nama jika ada di lokal memori
   }, []);
 
   const applyTheme = (newTheme: Theme) => {
@@ -95,10 +102,16 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('app_theme', newTheme);
   };
 
+  // Fungsi baru untuk menyimpan nama profil
+  const setUserName = (name: string) => {
+    setUserNameState(name);
+    localStorage.setItem('user_profile_name', name);
+  };
+
   const t = (key: string) => dictionary[language][key as keyof typeof dictionary['id']] || key;
 
   return (
-    <SettingsContext.Provider value={{ language, theme, setLanguage: setLanguageState, setTheme: applyTheme, saveSettings, t }}>
+    <SettingsContext.Provider value={{ language, theme, userName, setLanguage: setLanguageState, setTheme: applyTheme, setUserName, saveSettings, t }}>
       {children}
     </SettingsContext.Provider>
   );

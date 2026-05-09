@@ -16,8 +16,23 @@ export default function ValidationPage() {
 
   useEffect(() => {
     const pendingData = localStorage.getItem('pendingExpense');
-    if (pendingData) setEditData(JSON.parse(pendingData));
-    else router.push('/upload');
+    if (pendingData) {
+      try {
+        const parsed = JSON.parse(pendingData);
+        // MEMBERIKAN NILAI DEFAULT AGAR INPUT TIDAK ERROR (UNCONTROLLED)
+        setEditData({
+          category: parsed.category || 'Lainnya',
+          date: parsed.date || new Date().toISOString().split('T')[0], // Default hari ini jika kosong
+          total: parsed.total || 0,
+          items: Array.isArray(parsed.items) && parsed.items.length > 0 ? parsed.items : []
+        });
+      } catch (err) {
+        console.error("Gagal membaca data struk:", err);
+        router.push('/upload');
+      }
+    } else {
+      router.push('/upload');
+    }
   }, [router]);
 
   const handleSaveToDatabase = async () => {
@@ -59,8 +74,16 @@ export default function ValidationPage() {
                   <label className="text-sm text-slate-500 dark:text-[#94A3B8]">{t('category')}</label>
                   <div className="relative flex items-center">
                     <Leaf className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500 dark:text-green-400" size={16} />
-                    <select value={editData.category} onChange={(e) => setEditData({...editData, category: e.target.value})} className="w-full bg-slate-50 dark:bg-[#0F172A]/60 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-[10px] pl-10 pr-4 py-2.5 text-sm appearance-none focus:outline-none focus:border-cyan-500 transition-colors">
-                      <option value="Makanan">Makanan</option><option value="Transportasi">Transportasi</option><option value="Pakaian">Pakaian</option><option value="Kesehatan">Kesehatan</option><option value="Lainnya">Lainnya</option>
+                    <select 
+                      value={editData.category || 'Lainnya'} 
+                      onChange={(e) => setEditData({...editData, category: e.target.value})} 
+                      className="w-full bg-slate-50 dark:bg-[#0F172A]/60 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-[10px] pl-10 pr-4 py-2.5 text-sm appearance-none focus:outline-none focus:border-cyan-500 transition-colors"
+                    >
+                      <option value="Makanan">Makanan</option>
+                      <option value="Transportasi">Transportasi</option>
+                      <option value="Pakaian">Pakaian</option>
+                      <option value="Kesehatan">Kesehatan</option>
+                      <option value="Lainnya">Lainnya</option>
                     </select>
                   </div>
                 </div>
@@ -68,14 +91,26 @@ export default function ValidationPage() {
                   <label className="text-sm text-slate-500 dark:text-[#94A3B8]">{t('date')}</label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#94A3B8]" size={16} />
-                    <input type="date" value={editData.date} onChange={(e) => setEditData({...editData, date: e.target.value})} className="w-full bg-slate-50 dark:bg-[#0F172A]/60 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-[10px] pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-colors" />
+                    {/* Menggunakan nilai default || '' agar React tidak protes */}
+                    <input 
+                      type="date" 
+                      value={editData.date || ''} 
+                      onChange={(e) => setEditData({...editData, date: e.target.value})} 
+                      className="w-full bg-slate-50 dark:bg-[#0F172A]/60 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-[10px] pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-colors" 
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm text-slate-500 dark:text-[#94A3B8]">{t('total')} (Rp)</label>
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#94A3B8]" size={16} />
-                    <input type="number" value={editData.total} onChange={(e) => setEditData({...editData, total: parseInt(e.target.value) || 0})} className="w-full bg-slate-50 dark:bg-[#0F172A]/60 border border-slate-200 dark:border-white/10 text-blue-600 dark:text-cyan-400 font-bold rounded-[10px] pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-colors" />
+                    {/* Menangani angka 0 agar tidak menjadi string kosong yang error */}
+                    <input 
+                      type="number" 
+                      value={editData.total === 0 ? '' : editData.total} 
+                      onChange={(e) => setEditData({...editData, total: parseInt(e.target.value) || 0})} 
+                      className="w-full bg-slate-50 dark:bg-[#0F172A]/60 border border-slate-200 dark:border-white/10 text-blue-600 dark:text-cyan-400 font-bold rounded-[10px] pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-colors" 
+                    />
                   </div>
                 </div>
               </div>
@@ -87,21 +122,36 @@ export default function ValidationPage() {
                     <tr><th className="px-4 py-3 font-medium">{t('itemDesc')}</th><th className="px-4 py-3 font-medium w-32 text-right">{t('price')}</th></tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 dark:divide-white/5">
-                    {editData.items && editData.items.map((item: any, idx: number) => (
-                      <tr key={idx} className="hover:bg-white dark:hover:bg-white/5 transition-colors">
-                        <td className="px-4 py-3">{item.name}</td>
-                        <td className="px-4 py-3 text-right text-blue-600 dark:text-cyan-400">Rp {item.price.toLocaleString("id-ID")}</td>
+                    {editData.items && editData.items.length > 0 ? (
+                      editData.items.map((item: any, idx: number) => (
+                        <tr key={idx} className="hover:bg-white dark:hover:bg-white/5 transition-colors">
+                          <td className="px-4 py-3">{item.name || 'Barang Tidak Diketahui'}</td>
+                          <td className="px-4 py-3 text-right text-blue-600 dark:text-cyan-400">Rp {(item.price || 0).toLocaleString("id-ID")}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={2} className="px-4 py-6 text-center text-slate-400 dark:text-slate-500 italic">
+                          AI tidak mendeteksi rincian barang. Silakan isi total secara manual.
+                        </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
 
               <div className="flex items-center justify-end space-x-4 border-t border-slate-200 dark:border-white/10 pt-6">
-                <button onClick={() => {localStorage.removeItem('pendingExpense'); router.push('/upload');}} className="px-6 py-2.5 bg-transparent border border-slate-300 dark:border-white/15 text-slate-600 dark:text-slate-300 rounded-[10px] hover:bg-slate-100 dark:hover:bg-white/5 transition-colors text-sm font-medium">
+                <button 
+                  onClick={() => {localStorage.removeItem('pendingExpense'); router.push('/upload');}} 
+                  className="px-6 py-2.5 bg-transparent border border-slate-300 dark:border-white/15 text-slate-600 dark:text-slate-300 rounded-[10px] hover:bg-slate-100 dark:hover:bg-white/5 transition-colors text-sm font-medium"
+                >
                   {t('discard')}
                 </button>
-                <button onClick={handleSaveToDatabase} disabled={loading} className="flex items-center space-x-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-[10px] shadow-lg hover:opacity-90 disabled:opacity-50 transition-opacity text-sm">
+                <button 
+                  onClick={handleSaveToDatabase} 
+                  disabled={loading || editData.total === 0} 
+                  className="flex items-center space-x-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-[10px] shadow-lg hover:opacity-90 disabled:opacity-50 transition-opacity text-sm"
+                >
                   <Check size={16} /><span>{loading ? t('saving') : t('confirmSave')}</span>
                 </button>
               </div>
@@ -119,9 +169,11 @@ export default function ValidationPage() {
               <div className="flex items-center space-x-2 mb-6"><Sparkles className="text-cyan-500 dark:text-cyan-400" size={16} /><h4 className="text-sm font-semibold text-slate-800 dark:text-cyan-50">{t('aiConfidence')}</h4></div>
               <div className="space-y-4">
                 <div>
-                  <div className="flex justify-between text-xs mb-1.5"><span className="text-slate-500 dark:text-[#94A3B8]">{t('dataAccuracy')}</span><span className="text-cyan-600 dark:text-cyan-400 font-bold">98%</span></div>
+                  <div className="flex justify-between text-xs mb-1.5"><span className="text-slate-500 dark:text-[#94A3B8]">{t('dataAccuracy')}</span><span className="text-cyan-600 dark:text-cyan-400 font-bold">
+                    {editData.total > 0 ? '98%' : 'Low Confidence'}
+                  </span></div>
                   <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 w-[98%] rounded-full"></div>
+                    <div className={`h-full rounded-full ${editData.total > 0 ? 'bg-gradient-to-r from-blue-500 to-cyan-400 w-[98%]' : 'bg-red-400 w-[20%]'}`}></div>
                   </div>
                 </div>
               </div>

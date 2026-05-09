@@ -4,12 +4,13 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import Navbar from '@/components/Navbar';
 import { useSettings } from '@/context/SettingsContext';
-import { Cloud, Camera, Image as ImageIcon, FileText, ArrowRight, Lock, Loader2 } from 'lucide-react';
+import { Cloud, Camera, Image as ImageIcon, FileText, ArrowRight, Lock, Loader2, X } from 'lucide-react';
 
 export default function UploadPage() {
   const router = useRouter();
   const { t } = useSettings();
   const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null); // Tambahkan preview
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -18,8 +19,14 @@ export default function UploadPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
       setError(null);
+      
+      // Buat preview gambar
+      const reader = new FileReader();
+      reader.onloadend = () => setPreview(reader.result as string);
+      reader.readAsDataURL(selectedFile);
     }
   };
 
@@ -31,11 +38,12 @@ export default function UploadPage() {
     formData.append("receipt", file);
 
     try {
+      // Pastikan port 8001 (Python AI) atau 8000 (Laravel) menyala
       const response = await axios.post("http://127.0.0.1:8001/api/expenses/extract", formData);
       localStorage.setItem('pendingExpense', JSON.stringify(response.data.data));
       router.push('/validation');
     } catch (err: any) {
-      setError("Gagal memproses struk. Pastikan gambar jelas.");
+      setError("Gagal memproses struk. Pastikan koneksi ke AI Service aktif.");
       setLoading(false);
     }
   };
@@ -53,41 +61,44 @@ export default function UploadPage() {
         <input type="file" accept="image/*" capture="environment" ref={cameraInputRef} onChange={handleFileChange} className="hidden" />
 
         <div className="bg-white dark:bg-slate-800/40 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl p-8 shadow-md dark:shadow-2xl transition-colors">
-          <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-10 flex flex-col items-center justify-center bg-slate-50 dark:bg-[#090E17]/30 mb-6 transition-colors">
-            <div className="w-16 h-16 rounded-full bg-cyan-100 dark:bg-cyan-500/10 flex items-center justify-center mb-4">
-              <Cloud className="text-cyan-600 dark:text-cyan-400" size={32} />
-            </div>
-            <h3 className="text-xl font-semibold mb-2">{t('dropFilesHere')}</h3>
-            <p className="text-slate-500 dark:text-[#94A3B8] text-sm mb-6">{t('supportedFiles')}</p>
-            
-            <div className="flex space-x-4">
-              <button onClick={() => cameraInputRef.current?.click()} className="flex items-center space-x-2 px-5 py-2.5 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[10px] hover:bg-slate-200 dark:hover:bg-white/10 transition-colors text-sm font-medium">
-                <Camera size={16} /><span>{t('cameraCapture')}</span>
-              </button>
-              <button onClick={() => fileInputRef.current?.click()} className="flex items-center space-x-2 px-5 py-2.5 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[10px] hover:bg-slate-200 dark:hover:bg-white/10 transition-colors text-sm font-medium">
-                <ImageIcon size={16} /><span>{t('galleryUpload')}</span>
-              </button>
-            </div>
-          </div>
-
-          {file && (
-            <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 rounded-xl mb-4">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-white dark:bg-[#090E17] rounded-lg border border-slate-200 dark:border-transparent">
-                  <FileText className="text-slate-400 dark:text-slate-300" size={24} />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm truncate max-w-[200px]">{file.name}</p>
-                  <p className="text-slate-500 dark:text-[#94A3B8] text-xs">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                </div>
+          {!preview ? (
+            <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-10 flex flex-col items-center justify-center bg-slate-50 dark:bg-[#090E17]/30 mb-6 transition-colors">
+              <div className="w-16 h-16 rounded-full bg-cyan-100 dark:bg-cyan-500/10 flex items-center justify-center mb-4">
+                <Cloud className="text-cyan-600 dark:text-cyan-400" size={32} />
               </div>
-              <span className="px-3 py-1 bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 text-[11px] font-bold uppercase rounded-md border border-green-200 dark:border-green-500/20">
-                {t('fileReady')}
-              </span>
+              <h3 className="text-xl font-semibold mb-2">{t('dropFilesHere')}</h3>
+              <p className="text-slate-500 dark:text-[#94A3B8] text-sm mb-6">{t('supportedFiles')}</p>
+              
+              <div className="flex space-x-4">
+                <button onClick={() => cameraInputRef.current?.click()} className="flex items-center space-x-2 px-5 py-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[10px] hover:bg-slate-50 dark:hover:bg-white/10 transition-colors text-sm font-medium shadow-sm">
+                  <Camera size={16} className="text-blue-600 dark:text-cyan-400" />
+                  <span>{t('cameraCapture')}</span>
+                </button>
+                <button onClick={() => fileInputRef.current?.click()} className="flex items-center space-x-2 px-5 py-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-[10px] hover:bg-slate-50 dark:hover:bg-white/10 transition-colors text-sm font-medium shadow-sm">
+                  <ImageIcon size={16} className="text-blue-600 dark:text-cyan-400" />
+                  <span>{t('galleryUpload')}</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="relative w-full aspect-video mb-6 rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-black/20">
+              <img src={preview} alt="Preview" className="w-full h-full object-contain" />
+              <button 
+                onClick={() => {setFile(null); setPreview(null);}} 
+                className="absolute top-4 right-4 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg transition-colors"
+              >
+                <X size={18} />
+              </button>
             </div>
           )}
 
-          <button onClick={handleExtract} disabled={loading || !file} className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-[10px] py-4 shadow-lg hover:opacity-90 disabled:opacity-50 transition-opacity mb-4">
+          {error && <p className="text-red-500 text-xs text-center mb-4 font-medium">{error}</p>}
+
+          <button 
+            onClick={handleExtract} 
+            disabled={loading || !file} 
+            className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold rounded-[10px] py-4 shadow-lg hover:opacity-90 disabled:opacity-50 transition-opacity mb-4"
+          >
             {loading ? <Loader2 className="animate-spin" size={18} /> : <span>{t('scanReceipt')}</span>}
             {!loading && <ArrowRight size={18} />}
           </button>
