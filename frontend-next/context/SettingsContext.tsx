@@ -9,15 +9,52 @@ interface SettingsContextType {
   theme: Theme;
   setLanguage: (lang: Language) => void;
   setTheme: (theme: Theme) => void;
-  t: (key: string) => string; // Fungsi untuk menerjemahkan teks
+  t: (key: string) => string;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
-// Kamus Bahasa Sederhana
 const dictionary = {
   id: {
+    // Menu & Umum
+    dashboard: 'Dasbor',
+    upload: 'Unggah',
+    validation: 'Validasi',
+    reports: 'Laporan',
     settings: 'Pengaturan',
+    logout: 'Keluar',
+    newExpense: 'Catat Baru',
+    date: 'Tanggal',
+    category: 'Kategori',
+    total: 'Total',
+    detail: 'Detail',
+    
+    // Dashboard
+    totalExpense: 'Total Pengeluaran',
+    receiptCount: 'Jumlah Struk',
+    topCategory: 'Kategori Teratas',
+    processedByAI: 'Diproses oleh AI',
+    noData: 'Belum ada data',
+    recentTransactions: 'Transaksi Terakhir',
+    viewAll: 'Lihat Semua',
+    itemsCount: 'Jml Barang',
+    noTransactionHistory: 'Belum ada riwayat transaksi.',
+    insightMsg: 'Data Anda kini sepenuhnya terisolasi dan aman di dalam sistem AetherFinance.',
+    
+    // Reports
+    detailedReports: 'Laporan Rinci',
+    filterReview: 'Saring dan tinjau riwayat transaksi lengkap Anda.',
+    startDate: 'Tanggal Mulai',
+    endDate: 'Tanggal Akhir',
+    allCategories: 'Semua Kategori',
+    reset: 'Atur Ulang',
+    transactionHistory: 'Riwayat Transaksi',
+    recordsFound: 'Data Ditemukan',
+    noTransactionFilter: 'Tidak ada transaksi yang sesuai dengan filter ini.',
+    loadingReports: 'Memuat data laporan...',
+    itemDetails: 'Rincian Barang / Layanan:',
+    
+    // Halaman Pengaturan
     theme: 'Tema Aplikasi',
     dark: 'Gelap',
     light: 'Terang',
@@ -29,7 +66,45 @@ const dictionary = {
     desc: 'Sesuaikan pengalaman AetherFinance Anda.'
   },
   en: {
+    // Menu & Umum
+    dashboard: 'Dashboard',
+    upload: 'Upload',
+    validation: 'Validation',
+    reports: 'Reports',
     settings: 'Settings',
+    logout: 'Logout',
+    newExpense: 'New Expense',
+    date: 'Date',
+    category: 'Category',
+    total: 'Total',
+    detail: 'Detail',
+    
+    // Dashboard
+    totalExpense: 'Total Expense',
+    receiptCount: 'Receipts Count',
+    topCategory: 'Top Category',
+    processedByAI: 'Processed by AI',
+    noData: 'No data available',
+    recentTransactions: 'Recent Transactions',
+    viewAll: 'View All',
+    itemsCount: 'Items',
+    noTransactionHistory: 'No transaction history yet.',
+    insightMsg: 'Your data is now fully isolated and secured within the AetherFinance system.',
+    
+    // Reports
+    detailedReports: 'Detailed Reports',
+    filterReview: 'Filter and review your complete transaction history.',
+    startDate: 'Start Date',
+    endDate: 'End Date',
+    allCategories: 'All Categories',
+    reset: 'Reset',
+    transactionHistory: 'Transaction History',
+    recordsFound: 'Records Found',
+    noTransactionFilter: 'No transactions match this filter.',
+    loadingReports: 'Loading report data...',
+    itemDetails: 'Item / Service Details:',
+    
+    // Halaman Pengaturan
     theme: 'Application Theme',
     dark: 'Dark',
     light: 'Light',
@@ -46,7 +121,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>('en');
   const [theme, setThemeState] = useState<Theme>('dark');
 
-  // Ambil pengaturan dari memori browser saat pertama kali dimuat
   useEffect(() => {
     const savedLang = localStorage.getItem('app_lang') as Language;
     const savedTheme = localStorage.getItem('app_theme') as Theme;
@@ -56,7 +130,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       if (savedTheme === 'light') document.documentElement.classList.remove('dark');
       else document.documentElement.classList.add('dark');
     } else {
-      document.documentElement.classList.add('dark'); // Default Dark
+      document.documentElement.classList.add('dark');
     }
   }, []);
 
@@ -72,7 +146,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     else document.documentElement.classList.add('dark');
   };
 
-  // Fungsi penerjemah (Translator)
   const t = (key: string) => {
     return dictionary[language][key as keyof typeof dictionary['id']] || key;
   };

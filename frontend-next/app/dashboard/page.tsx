@@ -4,22 +4,21 @@ import axios from 'axios';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { useSettings } from '@/context/SettingsContext';
 import { Lightbulb, ShoppingBag, ChevronRight } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function DashboardPage() {
   const [history, setHistory] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const { t } = useSettings(); // Panggil fungsi penerjemah
 
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        // Ambil token sesi dari Supabase
         const { data: { session } } = await supabase.auth.getSession();
-        const token = session?.access_token;
-
         const response = await axios.get("http://127.0.0.1:8001/api/expenses", {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${session?.access_token}` }
         });
         setHistory(response.data);
       } catch (err) {
@@ -58,21 +57,20 @@ export default function DashboardPage() {
       <Navbar isDashboard={true} showSearch={true} onSearch={setSearchQuery} />
       
       <main className="px-8 mt-4 max-w-[1400px] mx-auto space-y-6">
-        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-slate-800/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
-            <p className="text-[#94A3B8] text-sm mb-2">Total Pengeluaran</p>
+            <p className="text-[#94A3B8] text-sm mb-2">{t('totalExpense')}</p>
             <h2 className="text-4xl font-bold text-cyan-400">Rp {totalExpense.toLocaleString("id-ID")}</h2>
           </div>
           <div className="bg-slate-800/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
-            <p className="text-[#94A3B8] text-sm mb-2">Jumlah Struk</p>
+            <p className="text-[#94A3B8] text-sm mb-2">{t('receiptCount')}</p>
             <div className="flex items-baseline space-x-2">
               <h2 className="text-4xl font-bold">{filteredHistory.length}</h2>
-              <span className="text-[#94A3B8] text-xs font-medium">Processed by AI</span>
+              <span className="text-[#94A3B8] text-xs font-medium">{t('processedByAI')}</span>
             </div>
           </div>
           <div className="bg-slate-800/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
-            <p className="text-[#94A3B8] text-sm mb-2">Kategori Teratas</p>
+            <p className="text-[#94A3B8] text-sm mb-2">{t('topCategory')}</p>
             <div className="flex items-baseline space-x-2">
               <h2 className="text-3xl font-bold truncate">
                 {chartData.length > 0 ? chartData.sort((a,b) => b.value - a.value)[0].name : "-"}
@@ -89,14 +87,13 @@ export default function DashboardPage() {
                 <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" /> LIVE ANALYSIS
               </span>
             </div>
-            
             <div className="space-y-4">
               <div className="flex items-start space-x-4 p-4 bg-white/5 rounded-xl border border-white/5">
                 <div className="p-2 bg-blue-500/20 rounded-lg shrink-0">
                   <Lightbulb className="text-cyan-400" size={18} />
                 </div>
                 <div>
-                  <p className="text-sm text-slate-300 leading-relaxed mb-2">Data Anda kini sepenuhnya terisolasi dan aman di dalam sistem AetherFinance.</p>
+                  <p className="text-sm text-slate-300 leading-relaxed mb-2">{t('insightMsg')}</p>
                 </div>
               </div>
             </div>
@@ -121,10 +118,9 @@ export default function DashboardPage() {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-slate-500 text-sm">Belum ada data</div>
+                <div className="w-full h-full flex items-center justify-center text-slate-500 text-sm">{t('noData')}</div>
               )}
             </div>
-            
             <div className="flex flex-wrap items-center justify-center gap-4 mt-4">
               {chartData.map((item, idx) => (
                 <div key={item.name} className="flex items-center space-x-2">
@@ -138,26 +134,25 @@ export default function DashboardPage() {
 
         <div className="bg-slate-800/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-semibold">Recent Transactions</h3>
+            <h3 className="text-xl font-semibold">{t('recentTransactions')}</h3>
             <Link href="/reports" className="flex items-center text-sm font-semibold text-cyan-400 hover:text-cyan-300 transition-colors">
-              View All <ChevronRight size={16} className="ml-1" />
+              {t('viewAll')} <ChevronRight size={16} className="ml-1" />
             </Link>
           </div>
-          
           <div className="w-full overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="text-[#94A3B8] text-xs uppercase border-b border-white/5">
                 <tr>
-                  <th className="pb-4 font-medium px-4">Tanggal</th>
-                  <th className="pb-4 font-medium px-4">Kategori</th>
-                  <th className="pb-4 font-medium px-4 text-center">Jml Barang</th>
-                  <th className="pb-4 font-medium px-4 text-right">Total</th>
+                  <th className="pb-4 font-medium px-4">{t('date')}</th>
+                  <th className="pb-4 font-medium px-4">{t('category')}</th>
+                  <th className="pb-4 font-medium px-4 text-center">{t('itemsCount')}</th>
+                  <th className="pb-4 font-medium px-4 text-right">{t('total')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {filteredHistory.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-8 text-center text-slate-500">Belum ada riwayat transaksi.</td>
+                    <td colSpan={4} className="py-8 text-center text-slate-500">{t('noTransactionHistory')}</td>
                   </tr>
                 ) : (
                   filteredHistory.slice(0, 5).map((item) => (
