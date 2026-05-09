@@ -47,10 +47,12 @@ export default function Sidebar() {
 
       {/* Bottom Actions */}
       <div className="p-4 space-y-2 mb-4">
-        <button className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-[#3B82F6] to-[#06B6D4] text-white font-semibold rounded-[10px] py-2.5 shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:opacity-90 transition-opacity">
-          <Plus size={18} />
-          <span className="text-sm">New Expense</span>
-        </button>
+        <Link href="/manual">
+          <button className="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-[#3B82F6] to-[#06B6D4] text-white font-semibold rounded-[10px] py-2.5 shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:opacity-90 transition-opacity">
+            <Plus size={18} />
+            <span className="text-sm">New Expense</span>
+          </button>
+        </Link>
       </div>
 
       <div className="px-3 pb-6 space-y-1 border-t border-white/5 pt-4">

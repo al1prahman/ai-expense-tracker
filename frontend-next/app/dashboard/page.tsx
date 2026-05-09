@@ -4,9 +4,11 @@ import axios from 'axios';
 import Navbar from '@/components/Navbar';
 import { Lightbulb, AlertCircle, ShoppingBag, Sparkles, ChevronRight } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import Link from 'next/link';
 
 export default function DashboardPage() {
   const [history, setHistory] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState(""); // State pencarian
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -20,13 +22,22 @@ export default function DashboardPage() {
     fetchHistory();
   }, []);
 
-  // Hitung Total Pengeluaran
-  const totalExpense = history.reduce((sum, item) => sum + item.total, 0);
+  // Logika Filter Pencarian (Mencari berdasarkan kategori, nama item, atau tanggal)
+  const filteredHistory = history.filter((item) => {
+    const query = searchQuery.toLowerCase();
+    const matchCategory = item.category.toLowerCase().includes(query);
+    const matchDate = item.date.includes(query);
+    // Cek apakah ada nama barang yang cocok dengan pencarian
+    const matchItems = item.items?.some((i: any) => i.name.toLowerCase().includes(query));
+    
+    return matchCategory || matchDate || matchItems;
+  });
 
-  // Olah data untuk Donut Chart
+  const totalExpense = filteredHistory.reduce((sum, item) => sum + item.total, 0);
+
   const getChartData = () => {
     const aggregated: Record<string, number> = {};
-    history.forEach((item) => {
+    filteredHistory.forEach((item) => {
       aggregated[item.category] = (aggregated[item.category] || 0) + item.total;
     });
     return Object.keys(aggregated).map((key) => ({
@@ -40,7 +51,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#090E17] text-[#F8FAFC] font-sans pb-12 relative">
-      <Navbar title="Overview" showSearch={true} />
+      <Navbar isDashboard={true} showSearch={true} onSearch={setSearchQuery} />
       
       <main className="px-8 mt-4 max-w-[1400px] mx-auto space-y-6">
         
@@ -129,9 +140,9 @@ export default function DashboardPage() {
         <div className="bg-slate-800/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-semibold">Recent Transactions</h3>
-            <a href="#" className="flex items-center text-sm font-semibold text-cyan-400 hover:text-cyan-300 transition-colors">
-              View All <ChevronRight size={16} className="ml-1" />
-            </a>
+                <Link href="/reports" className="flex items-center text-sm font-semibold text-cyan-400 hover:text-cyan-300 transition-colors">
+                View All <ChevronRight size={16} className="ml-1" />
+            </Link>
           </div>
           
           <div className="w-full overflow-x-auto">
@@ -150,7 +161,7 @@ export default function DashboardPage() {
                     <td colSpan={4} className="py-8 text-center text-slate-500">Belum ada riwayat transaksi.</td>
                   </tr>
                 ) : (
-                  history.slice(0, 5).map((item) => (
+                  filteredHistory.slice(0, 5).map((item) => (
                     <tr key={item.id} className="hover:bg-white/5 transition-colors group">
                       <td className="py-4 px-4 text-[#94A3B8]">{item.date}</td>
                       <td className="py-4 px-4 flex items-center space-x-3">
