@@ -1,30 +1,29 @@
 'use client';
-import { useState, useEffect } from 'react';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Navbar from '@/components/Navbar';
-import { Filter, Calendar, Tag, ChevronDown, ChevronUp, Receipt, ShoppingBag } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { Calendar, Tag, ChevronDown, ChevronUp, Receipt, ShoppingBag } from 'lucide-react';
 
 export default function ReportsPage() {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [filteredExpenses, setFilteredExpenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // State untuk baris yang di-expand
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
-  // State untuk filter
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
     category: 'Semua'
   });
 
-  // Ambil data dari database
   useEffect(() => {
     const fetchExpenses = async () => {
       try {
-        const response = await axios.get("http://127.0.0.1:8001/api/expenses");
+        const { data: { session } } = await supabase.auth.getSession();
+        const response = await axios.get("http://127.0.0.1:8001/api/expenses", {
+          headers: { Authorization: `Bearer ${session?.access_token}` }
+        });
         setExpenses(response.data);
         setFilteredExpenses(response.data);
       } catch (err) {
@@ -36,50 +35,27 @@ export default function ReportsPage() {
     fetchExpenses();
   }, []);
 
-  // Logika Filter Data
   useEffect(() => {
     let result = expenses;
-
-    // Filter Kategori
-    if (filters.category !== 'Semua') {
-      result = result.filter(item => item.category === filters.category);
-    }
-
-    // Filter Tanggal Mulai
-    if (filters.startDate) {
-      result = result.filter(item => new Date(item.date) >= new Date(filters.startDate));
-    }
-
-    // Filter Tanggal Akhir
-    if (filters.endDate) {
-      result = result.filter(item => new Date(item.date) <= new Date(filters.endDate));
-    }
-
+    if (filters.category !== 'Semua') result = result.filter(item => item.category === filters.category);
+    if (filters.startDate) result = result.filter(item => new Date(item.date) >= new Date(filters.startDate));
+    if (filters.endDate) result = result.filter(item => new Date(item.date) <= new Date(filters.endDate));
     setFilteredExpenses(result);
   }, [filters, expenses]);
 
-  // Fungsi toggle baris (expand/collapse)
   const toggleExpand = (id: number) => {
-    if (expandedId === id) {
-      setExpandedId(null); // Tutup jika diklik lagi
-    } else {
-      setExpandedId(id); // Buka baris ini
-    }
+    setExpandedId(expandedId === id ? null : id);
   };
 
   return (
     <div className="min-h-screen bg-[#090E17] text-[#F8FAFC] font-sans pb-12">
       <Navbar title="Financial Reports" />
-      
       <main className="px-8 mt-8 max-w-6xl mx-auto space-y-6">
-        
-        {/* Header Section */}
         <div>
           <h1 className="text-3xl font-bold mb-2">Detailed Reports</h1>
           <p className="text-[#94A3B8]">Filter and review your complete transaction history.</p>
         </div>
 
-        {/* --- KOTAK FILTER --- */}
         <div className="bg-slate-800/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl flex flex-col md:flex-row gap-6 items-end">
           <div className="flex-1 w-full space-y-2">
             <label className="text-xs font-bold text-[#94A3B8] uppercase flex items-center gap-2">
@@ -92,7 +68,6 @@ export default function ReportsPage() {
               className="w-full bg-[#0F172A]/60 border border-white/10 text-white rounded-[10px] px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-400" 
             />
           </div>
-          
           <div className="flex-1 w-full space-y-2">
             <label className="text-xs font-bold text-[#94A3B8] uppercase flex items-center gap-2">
               <Calendar size={14} /> Tanggal Akhir
@@ -104,7 +79,6 @@ export default function ReportsPage() {
               className="w-full bg-[#0F172A]/60 border border-white/10 text-white rounded-[10px] px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-400" 
             />
           </div>
-
           <div className="flex-1 w-full space-y-2">
             <label className="text-xs font-bold text-[#94A3B8] uppercase flex items-center gap-2">
               <Tag size={14} /> Kategori
@@ -122,7 +96,6 @@ export default function ReportsPage() {
               <option value="Lainnya">Lainnya</option>
             </select>
           </div>
-
           <button 
             onClick={() => setFilters({startDate: '', endDate: '', category: 'Semua'})}
             className="px-6 py-2.5 bg-transparent border border-white/15 text-slate-300 rounded-[10px] hover:bg-white/5 transition-colors text-sm font-medium h-[42px]"
@@ -131,7 +104,6 @@ export default function ReportsPage() {
           </button>
         </div>
 
-        {/* --- TABEL DATA PENGELUARAN --- */}
         <div className="bg-slate-800/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
           <div className="p-6 border-b border-white/5 flex items-center justify-between">
             <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -162,7 +134,6 @@ export default function ReportsPage() {
                 <tbody className="divide-y divide-white/5">
                   {filteredExpenses.map((expense) => (
                     <React.Fragment key={expense.id}>
-                      {/* Baris Utama */}
                       <tr 
                         onClick={() => toggleExpand(expense.id)}
                         className={`hover:bg-white/5 transition-colors cursor-pointer group ${expandedId === expense.id ? 'bg-white/5' : ''}`}
@@ -179,8 +150,6 @@ export default function ReportsPage() {
                           {expandedId === expense.id ? <ChevronUp size={20} className="mx-auto" /> : <ChevronDown size={20} className="mx-auto" />}
                         </td>
                       </tr>
-
-                      {/* Baris Detail (Terbuka saat di-klik) */}
                       {expandedId === expense.id && (
                         <tr className="bg-[#050A10]/50 shadow-inner">
                           <td colSpan={5} className="py-4 px-8">
@@ -208,7 +177,6 @@ export default function ReportsPage() {
             )}
           </div>
         </div>
-
       </main>
     </div>
   );

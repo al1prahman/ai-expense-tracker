@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import Navbar from '@/components/Navbar';
+import { supabase } from '@/lib/supabase';
 import { AlertTriangle, Calendar, DollarSign, Leaf, Check, Sparkles } from 'lucide-react';
 
 export default function ValidationPage() {
@@ -12,12 +13,10 @@ export default function ValidationPage() {
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Ambil data yang dilempar dari halaman Upload
     const pendingData = localStorage.getItem('pendingExpense');
     if (pendingData) {
       setEditData(JSON.parse(pendingData));
     } else {
-      // Jika tidak ada data, kembalikan ke halaman upload
       router.push('/upload');
     }
   }, [router]);
@@ -27,9 +26,12 @@ export default function ValidationPage() {
       setLoading(true);
       setDuplicateError(null);
       
-      await axios.post("http://127.0.0.1:8001/api/expenses", editData);
+      const { data: { session } } = await supabase.auth.getSession();
       
-      // Bersihkan data dan ke dashboard
+      await axios.post("http://127.0.0.1:8001/api/expenses", editData, {
+        headers: { Authorization: `Bearer ${session?.access_token}` }
+      });
+      
       localStorage.removeItem('pendingExpense');
       router.push('/dashboard');
       
@@ -49,19 +51,15 @@ export default function ValidationPage() {
     router.push('/upload');
   };
 
-  if (!editData) return null; // Mencegah kedip sebelum redirect
+  if (!editData) return null;
 
   return (
     <div className="min-h-screen bg-[#090E17] text-[#F8FAFC] font-sans pb-12">
       <Navbar title="Review AI Results" />
-      
       <main className="px-8 mt-2 max-w-7xl mx-auto">
         <p className="text-[#94A3B8] mb-8">Verify extracted data from your recent document upload.</p>
-        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column: Form & Table */}
           <div className="lg:col-span-2 space-y-6">
-            
             <div className="flex items-start space-x-4 p-5 bg-[#FBBF24]/10 border border-[#FBBF24]/20 border-l-4 border-l-[#FBBF24] rounded-xl">
               <AlertTriangle className="text-[#FBBF24] mt-0.5 shrink-0" size={20} />
               <div>
@@ -70,7 +68,6 @@ export default function ValidationPage() {
               </div>
             </div>
 
-            {/* Form Card */}
             <div className="bg-slate-800/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="space-y-2">
@@ -80,7 +77,7 @@ export default function ValidationPage() {
                     <select 
                       value={editData.category}
                       onChange={(e) => setEditData({...editData, category: e.target.value})}
-                      className="w-full bg-[#0F172A]/60 border border-white/10 text-white rounded-[10px] pl-10 pr-4 py-2.5 text-sm appearance-none focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+                      className="w-full bg-[#0F172A]/60 border border-white/10 text-white rounded-[10px] pl-10 pr-4 py-2.5 text-sm appearance-none focus:outline-none focus:border-cyan-400"
                     >
                       <option value="Makanan">Makanan</option>
                       <option value="Transportasi">Transportasi</option>
@@ -152,18 +149,14 @@ export default function ValidationPage() {
             </div>
           </div>
 
-          {/* Right Column: Error Alerts */}
           <div className="lg:col-span-1 space-y-6">
-            
             {duplicateError && (
               <div className="bg-[#EF4444]/10 backdrop-blur-xl border border-[#EF4444]/30 border-l-4 border-l-[#EF4444] rounded-2xl p-6 shadow-2xl animate-in slide-in-from-right-4">
                 <div className="flex items-center space-x-3 mb-4">
                   <AlertTriangle className="text-[#EF4444]" size={20} />
                   <h3 className="font-bold text-[#EF4444]">Duplicate Detected</h3>
                 </div>
-                <p className="text-sm text-slate-300 mb-5 leading-relaxed">
-                  {duplicateError}
-                </p>
+                <p className="text-sm text-slate-300 mb-5 leading-relaxed">{duplicateError}</p>
               </div>
             )}
 
@@ -172,7 +165,6 @@ export default function ValidationPage() {
                 <Sparkles className="text-cyan-400" size={16} />
                 <h4 className="text-sm font-semibold text-cyan-50">AI Extraction Confidence</h4>
               </div>
-              
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between text-xs mb-1.5">
@@ -185,7 +177,6 @@ export default function ValidationPage() {
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </main>

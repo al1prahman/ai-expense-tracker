@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import Navbar from '@/components/Navbar';
+import { supabase } from '@/lib/supabase';
 import { Calendar, DollarSign, Leaf, Edit3, Check, Loader2 } from 'lucide-react';
 
 export default function ManualExpensePage() {
@@ -14,7 +15,7 @@ export default function ManualExpensePage() {
     category: 'Makanan',
     date: new Date().toISOString().split('T')[0],
     total: 0,
-    items: [{ name: 'Pengeluaran Manual', price: 0 }] // Default 1 item
+    items: [{ name: '', price: 0 }]
   });
 
   const handleSaveToDatabase = async () => {
@@ -22,13 +23,16 @@ export default function ManualExpensePage() {
       setLoading(true);
       setError(null);
       
-      // Update price item default agar sesuai dengan total
       const dataToSubmit = {
         ...formData,
         items: [{ name: formData.items[0].name, price: formData.total }]
       };
 
-      await axios.post("http://127.0.0.1:8001/api/expenses", dataToSubmit);
+      const { data: { session } } = await supabase.auth.getSession();
+
+      await axios.post("http://127.0.0.1:8001/api/expenses", dataToSubmit, {
+        headers: { Authorization: `Bearer ${session?.access_token}` }
+      });
       router.push('/dashboard');
       
     } catch (err: any) {
@@ -41,7 +45,6 @@ export default function ManualExpensePage() {
   return (
     <div className="min-h-screen bg-[#090E17] text-[#F8FAFC] font-sans pb-12">
       <Navbar title="Manual Entry" />
-      
       <main className="px-8 mt-8 max-w-3xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Record an Expense</h1>

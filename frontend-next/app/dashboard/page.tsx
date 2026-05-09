@@ -2,18 +2,25 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Navbar from '@/components/Navbar';
-import { Lightbulb, AlertCircle, ShoppingBag, Sparkles, ChevronRight } from 'lucide-react';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
+import { Lightbulb, ShoppingBag, ChevronRight } from 'lucide-react';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function DashboardPage() {
   const [history, setHistory] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState(""); // State pencarian
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const response = await axios.get("http://127.0.0.1:8001/api/expenses");
+        // Ambil token sesi dari Supabase
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+
+        const response = await axios.get("http://127.0.0.1:8001/api/expenses", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setHistory(response.data);
       } catch (err) {
         console.error("Gagal mengambil riwayat:", err);
@@ -22,14 +29,11 @@ export default function DashboardPage() {
     fetchHistory();
   }, []);
 
-  // Logika Filter Pencarian (Mencari berdasarkan kategori, nama item, atau tanggal)
   const filteredHistory = history.filter((item) => {
     const query = searchQuery.toLowerCase();
     const matchCategory = item.category.toLowerCase().includes(query);
     const matchDate = item.date.includes(query);
-    // Cek apakah ada nama barang yang cocok dengan pencarian
     const matchItems = item.items?.some((i: any) => i.name.toLowerCase().includes(query));
-    
     return matchCategory || matchDate || matchItems;
   });
 
@@ -55,7 +59,6 @@ export default function DashboardPage() {
       
       <main className="px-8 mt-4 max-w-[1400px] mx-auto space-y-6">
         
-        {/* Top Stat Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-slate-800/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
             <p className="text-[#94A3B8] text-sm mb-2">Total Pengeluaran</p>
@@ -64,7 +67,7 @@ export default function DashboardPage() {
           <div className="bg-slate-800/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
             <p className="text-[#94A3B8] text-sm mb-2">Jumlah Struk</p>
             <div className="flex items-baseline space-x-2">
-              <h2 className="text-4xl font-bold">{history.length}</h2>
+              <h2 className="text-4xl font-bold">{filteredHistory.length}</h2>
               <span className="text-[#94A3B8] text-xs font-medium">Processed by AI</span>
             </div>
           </div>
@@ -78,9 +81,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Second Row: Insights & Chart */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          
           <div className="lg:col-span-3 bg-slate-800/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl flex flex-col justify-between">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold">Wealth Insights</h3>
@@ -95,13 +96,12 @@ export default function DashboardPage() {
                   <Lightbulb className="text-cyan-400" size={18} />
                 </div>
                 <div>
-                  <p className="text-sm text-slate-300 leading-relaxed mb-2">Sistem AI AetherFinance berhasil mengkategorikan pengeluaran Anda dengan akurasi tinggi.</p>
+                  <p className="text-sm text-slate-300 leading-relaxed mb-2">Data Anda kini sepenuhnya terisolasi dan aman di dalam sistem AetherFinance.</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Spending Mix (Donut Chart) */}
           <div className="lg:col-span-2 bg-slate-800/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl flex flex-col">
             <h3 className="text-sm text-[#94A3B8] font-semibold mb-4">Spending Mix</h3>
             <div className="flex-1 relative min-h-[220px]">
@@ -136,12 +136,11 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Recent Transactions Table */}
         <div className="bg-slate-800/40 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-semibold">Recent Transactions</h3>
-                <Link href="/reports" className="flex items-center text-sm font-semibold text-cyan-400 hover:text-cyan-300 transition-colors">
-                View All <ChevronRight size={16} className="ml-1" />
+            <Link href="/reports" className="flex items-center text-sm font-semibold text-cyan-400 hover:text-cyan-300 transition-colors">
+              View All <ChevronRight size={16} className="ml-1" />
             </Link>
           </div>
           
@@ -156,7 +155,7 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {history.length === 0 ? (
+                {filteredHistory.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="py-8 text-center text-slate-500">Belum ada riwayat transaksi.</td>
                   </tr>
@@ -177,7 +176,6 @@ export default function DashboardPage() {
             </table>
           </div>
         </div>
-
       </main>
     </div>
   );
