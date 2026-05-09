@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from fastapi import FastAPI, File, UploadFile
+from fastapi.responses import JSONResponse
 from PIL import Image
 import io
 import json
@@ -46,25 +47,25 @@ async def extract_receipt(file: UploadFile = File(...)):
             image = Image.open(io.BytesIO(raw_image_bytes)).convert("RGB")
         # --- [SELESAI] BULLETPROOF IMAGE PROCESSING ---
 
-        # Instruksi untuk AI
+        # Instruksi untuk AI (Prompt lebih padat)
         prompt = """
-        Anda adalah sistem Data Extraction ahli. Tugas Anda HANYA membaca struk belanja ini dan mengembalikan output murni dalam format JSON. JANGAN tambahkan teks Markdown, JANGAN gunakan blok ```json, langsung kembalikan objek JSON-nya.
+        Anda adalah sistem Data Extraction ahli. Tugas Anda HANYA membaca struk belanja ini dan mengembalikan output murni dalam format JSON.
 
         Aturan ketat:
         1. "category" hanya boleh diisi salah satu dari: "Makanan", "Transportasi", "Pakaian", "Kesehatan", atau "Lainnya".
-        2. "date" harus berformat YYYY-MM-DD.
-        3. Semua "price" dan "total" harus berupa angka (integer), buang semua titik/koma/Rp.
+        2. "date" harus berformat YYYY-MM-DD. Jika tidak ada, kembalikan "".
+        3. Semua "price" dan "total" harus berupa angka (integer). Buang semua titik/koma/Rp. Jika gagal dibaca, kembalikan 0.
 
         Struktur JSON wajib:
         {
-            "items": [{"name": "Nama Barang", "price": 10000}],
-            "total": 50000,
-            "date": "2024-05-08",
-            "category": "Makanan"
+            "items": [{"name": "Nama Barang", "price": 0}],
+            "total": 0,
+            "date": "YYYY-MM-DD",
+            "category": "Lainnya"
         }
         """
 
-        # PERBAIKAN: Mengirim prompt DAN image ke Gemini!
+        # Memanggil Gemini dengan fitur JSON Validation Murni
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=[prompt, image],
@@ -76,11 +77,19 @@ async def extract_receipt(file: UploadFile = File(...)):
         # Mengubah response JSON string menjadi Python Dictionary
         parsed_data = json.loads(response.text)
 
-        # PERBAIKAN: Menghapus raw_text yang membuat error
-        return {
-            "status": "success",
-            "filename": file.filename,
-            "parsed_data": parsed_data
-        }
+        # KEMBALIKAN LANGSUNG PARSED DATA (Agar formatnya pas dengan Next.js)
+        return JSONResponse(content=parsed_data)
+
     except Exception as e:
-        return {"status": "error", "message": str(e)}
+        print(f"Error pada AI: {str(e)}")
+        # FALLBACK ANTI-CRASH: Jika AI gagal membaca gambar atau error,
+        # kirimkan JSON kosong agar frontend tetap masuk ke halaman Validasi Manual.
+        return JSONResponse(
+            status_code=200,
+            content={
+                "category": "Lainnya",
+                "date": "",
+                "total": 0,
+                "items": []
+            }
+        )

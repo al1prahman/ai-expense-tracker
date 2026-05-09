@@ -1,106 +1,129 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { useSettings } from '@/context/SettingsContext';
-import { Monitor, Globe, CheckCircle2 } from 'lucide-react';
+import { Save, CheckCircle2, Palette, Globe, Moon, Sun, Flag } from 'lucide-react';
+
+// IMPORT KOMPONEN SHADCN (Tabs sudah terinstal manual sebelumnya)
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function SettingsPage() {
-  const { theme, language, saveSettings, t } = useSettings();
-  
-  // State lokal: menampung pilihan sementara sebelum klik Save
-  const [tempTheme, setTempTheme] = useState(theme);
-  const [tempLang, setTempLang] = useState(language);
-  const [showToast, setShowToast] = useState(false);
+  const { language, theme, saveSettings, t } = useSettings();
+  const [tempLang, setTempLang] = useState<'id' | 'en'>(language);
+  const [tempTheme, setTempTheme] = useState<'dark' | 'light'>(theme);
+  const [isSaved, setIsSaved] = useState(false);
 
-  const handleFinalSave = () => {
+  // Reset state jika context berubah dari luar
+  useEffect(() => {
+    setTempLang(language);
+    setTempTheme(theme);
+  }, [language, theme]);
+
+  const handleSave = () => {
     saveSettings(tempLang, tempTheme);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
+    setIsSaved(true);
+    setTimeout(() => setIsSaved(false), 3000);
   };
 
+  // 1. UTILITY: KELAS UNTUK LIQUID GLASS CARD (Di mode Terang)
+  // shadow-2xl untuk bayangan yang jauh lebih lembut dan luas
+  // border-slate-200/60 untuk garis tepi kaca yang sangat halus
+  const glassCardClass = "bg-white/70 dark:bg-slate-800/40 backdrop-blur-xl border border-slate-200/60 dark:border-white/10 shadow-2xl transition-all duration-300";
+  
+  // 2. UTILITY: KELAS UNTUK AREA KONTROL TOGGLE (Presisi ala Apple)
+  // border-slate-300/60 untuk kotak luar toggle yang jelas dan presisi
+  const controlBoxClass = "grid grid-cols-2 h-14 bg-slate-100 dark:bg-[#0F172A] rounded-xl p-1 border border-slate-300/60 dark:border-white/5";
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#090E17] text-slate-900 dark:text-[#F8FAFC] font-sans pb-12 transition-colors duration-300">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#090E17] text-slate-900 dark:text-[#F8FAFC] font-sans pb-12 transition-colors duration-300 relative">
       <Navbar title={t('settings')} />
       
-      <main className="px-8 mt-8 max-w-3xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">{t('appearance')}</h1>
+      <main className="px-8 mt-10 max-w-3xl mx-auto space-y-8 relative z-10">
+        
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">{t('appearance')}</h1>
           <p className="text-slate-500 dark:text-[#94A3B8]">{t('desc')}</p>
         </div>
 
-        {showToast && (
-          <div className="p-4 bg-green-100 dark:bg-green-500/10 border border-green-300 dark:border-green-500/30 rounded-xl flex items-center space-x-3 transition-all animate-in fade-in zoom-in">
-            <CheckCircle2 className="text-green-600 dark:text-green-400 shrink-0" size={18} />
-            <p className="text-green-700 dark:text-green-400 text-sm font-medium">{t('saveSuccess')}</p>
+        {/* NOTIFIKASI SUKSES (Mewah) */}
+        {isSaved && (
+          <div className="flex items-center justify-center space-x-2 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 p-4 rounded-xl border border-green-200 dark:border-green-500/20 animate-in fade-in slide-in-from-top-4">
+            <CheckCircle2 size={20} />
+            <span className="font-medium text-sm">{t('saveSuccess')}</span>
           </div>
         )}
 
-        <div className="bg-white dark:bg-slate-800/40 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-2xl p-8 shadow-md dark:shadow-2xl space-y-8 transition-colors">
+        {/* 3. TEMA APLIKASI (Liquid Glass Card) */}
+        <Card className={glassCardClass}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <Palette className="text-cyan-500" size={20} />
+              {t('theme')}
+            </CardTitle>
+            <CardDescription>Pilih nuansa antarmuka AetherFinance yang paling nyaman untuk mata Anda.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* TABS (TOGGLE TEMA) - DIRAPIKAN PRESISINYA */}
+            <Tabs 
+              value={tempTheme} 
+              onValueChange={(val) => setTempTheme(val as 'light' | 'dark')} 
+              className="w-full"
+            >
+              <TabsList className={controlBoxClass}>
+                <TabsTrigger value="light" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-cyan-600 dark:data-[state=active]:bg-white/10 dark:data-[state=active]:text-cyan-400 text-slate-500 font-bold transition-all flex gap-2 h-full border border-transparent data-[state=active]:border-slate-100 data-[state=active]:shadow-sm">
+                  <Sun size={18} /> {t('light')}
+                </TabsTrigger>
+                <TabsTrigger value="dark" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-cyan-600 dark:data-[state=active]:bg-[#1E293B] dark:data-[state=active]:text-cyan-400 text-slate-500 font-bold transition-all flex gap-2 h-full border border-transparent data-[state=active]:border-white/5 data-[state=active]:shadow-sm">
+                  <Moon size={18} /> {t('dark')}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* 4. BAHASA (Liquid Glass Card) */}
+        <Card className={glassCardClass}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <Globe className="text-blue-500" size={20} />
+              {t('language')}
+            </CardTitle>
+            <CardDescription>Sesuaikan bahasa sistem untuk analisis dan laporan AI.</CardDescription>
+          </CardHeader>
+          <CardContent>
+             {/* TABS (TOGGLE BAHASA) - DIRAPIKAN PRESISINYA */}
+             <Tabs 
+              value={tempLang} 
+              onValueChange={(val) => setTempLang(val as 'id' | 'en')} 
+              className="w-full"
+            >
+              <TabsList className={controlBoxClass}>
+                <TabsTrigger value="id" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 dark:data-[state=active]:bg-white/10 dark:data-[state=active]:text-cyan-400 text-slate-500 font-bold transition-all flex gap-2 h-full border border-transparent data-[state=active]:border-slate-100 data-[state=active]:shadow-sm">
+                  <Flag size={18} /> {t('indonesian')}
+                </TabsTrigger>
+                <TabsTrigger value="en" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 dark:data-[state=active]:bg-[#1E293B] dark:data-[state=active]:text-cyan-400 text-slate-500 font-bold transition-all flex gap-2 h-full border border-transparent data-[state=active]:border-white/5 data-[state=active]:shadow-sm">
+                  <Flag size={18} /> {t('english')}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardContent>
           
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2 text-slate-500 dark:text-[#94A3B8] font-bold uppercase text-xs tracking-wider">
-              <Monitor size={16} />
-              <span>{t('theme')}</span>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <button 
-                onClick={() => setTempTheme('dark')}
-                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${tempTheme === 'dark' ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-400/10' : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:border-slate-300'}`}
-              >
-                <div className="w-16 h-10 bg-[#090E17] rounded border border-slate-300 dark:border-white/20 mb-3 overflow-hidden">
-                  <div className="w-full h-full bg-gradient-to-br from-slate-800 to-[#090E17]"></div>
-                </div>
-                <span className={`text-sm font-semibold ${tempTheme === 'dark' ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-600 dark:text-slate-300'}`}>{t('dark')}</span>
-              </button>
-
-              <button 
-                onClick={() => setTempTheme('light')}
-                className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${tempTheme === 'light' ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-400/10' : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:border-slate-300'}`}
-              >
-                <div className="w-16 h-10 bg-white rounded border border-slate-300 mb-3 overflow-hidden">
-                  <div className="w-full h-full bg-gradient-to-br from-slate-100 to-white"></div>
-                </div>
-                <span className={`text-sm font-semibold ${tempTheme === 'light' ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-600 dark:text-slate-300'}`}>{t('light')}</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="h-px bg-slate-200 dark:bg-white/10 w-full" />
-
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2 text-slate-500 dark:text-[#94A3B8] font-bold uppercase text-xs tracking-wider">
-              <Globe size={16} />
-              <span>{t('language')}</span>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <button 
-                onClick={() => setTempLang('id')}
-                className={`p-4 rounded-xl border-2 transition-all text-center ${tempLang === 'id' ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-400/10 text-cyan-600 dark:text-cyan-400' : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:border-slate-300'}`}
-              >
-                <span className="text-sm font-semibold">🇮🇩 {t('indonesian')}</span>
-              </button>
-
-              <button 
-                onClick={() => setTempLang('en')}
-                className={`p-4 rounded-xl border-2 transition-all text-center ${tempLang === 'en' ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-400/10 text-cyan-600 dark:text-cyan-400' : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:border-slate-300'}`}
-              >
-                <span className="text-sm font-semibold">🇬🇧 {t('english')}</span>
-              </button>
-            </div>
-          </div>
-
-        </div>
-
-        <div className="flex justify-end pt-4">
-          <button 
-            onClick={handleFinalSave}
-            className="px-8 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold rounded-xl shadow-[0_4px_15px_rgba(6,182,212,0.3)] hover:opacity-90 transition-opacity"
-          >
-            {t('save')}
-          </button>
-        </div>
+          {/* 5. FOOTER KARTU YANG JAUH LEBIH BERKELAS (Mewah) */}
+          {/* bg-slate-50/50 memberikan efek pemisah kaca yang halus di mode terang */}
+          {/* border-t-slate-100 memberikan garis pemisah tipis yang elegan */}
+          <CardFooter className="bg-slate-50/50 dark:bg-white/5 border-t border-slate-100 dark:border-white/5 py-5 mt-6 justify-end rounded-b-xl shadow-inner transition-colors">
+            {/* BUTTON SIMPAN YANG KEMBALI MENYALA CANTIK */}
+            <Button 
+              onClick={handleSave}
+              className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:opacity-90 text-white font-bold px-8 shadow-lg dark:shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all h-11"
+            >
+              <Save size={18} className="mr-2" />
+              {t('save')}
+            </Button>
+          </CardFooter>
+        </Card>
 
       </main>
     </div>
