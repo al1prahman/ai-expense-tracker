@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import ClientLayout from "@/components/ClientLayout";
+import { SettingsProvider } from "@/context/SettingsContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,12 +17,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <body className={inter.className}>
-        {/* Kita bungkus seluruh aplikasi dengan ClientLayout yang baru kita buat */}
-        <ClientLayout>
-          {children}
-        </ClientLayout>
+        {/* Bungkus seluruh aplikasi dengan SettingsProvider */}
+        <SettingsProvider>
+          <ClientLayout>
+            {children}
+          </ClientLayout>
+        </SettingsProvider>
       </body>
     </html>
   );
