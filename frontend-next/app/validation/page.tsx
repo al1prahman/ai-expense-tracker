@@ -122,7 +122,8 @@ export default function ValidationPage() {
                 {/* SHADCN CARD UNTUK FORM */}
                 <Card className={glassCardClass}>
                   <CardContent className="p-6 pt-8">
-                    <div className="space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                      <div className="flex flex-col gap-3">
                         <label className="text-sm font-semibold text-slate-600 dark:text-[#94A3B8]">{t('category')}</label>
                         <Combobox 
                           items={categories} 
@@ -133,7 +134,7 @@ export default function ValidationPage() {
                             render={
                               <Button 
                                 variant="outline" 
-                                className="w-full justify-between font-normal h-[42px] border-slate-200 dark:border-white/10 dark:bg-[#0F172A]/60 hover:bg-slate-100 dark:hover:bg-white/5 pl-10 relative"
+                                className="w-full justify-between font-normal h-[42px] rounded-lg border-slate-200 dark:border-white/10 dark:bg-[#0F172A]/60 hover:bg-slate-100 dark:hover:bg-white/5 pl-10 relative"
                               >
                                 {/* Ikon Leaf tetap kita pertahankan di dalam tombol */}
                                 <Leaf className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500 dark:text-green-400" size={16} />
@@ -154,6 +155,48 @@ export default function ValidationPage() {
                           </ComboboxContent>
                         </Combobox>
                       </div>
+
+                      <div className="flex flex-col gap-3">
+                        <label className="text-sm font-semibold text-slate-600 dark:text-[#94A3B8]">{t('date')}</label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant={"outline"}
+                              className={`w-full justify-start text-left font-normal pl-4 h-[42px] rounded-lg border-slate-200 dark:border-white/10 dark:bg-[#0F172A]/60 hover:bg-slate-100 dark:hover:bg-white/5 ${!editData.date && "text-slate-500"}`}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4 text-cyan-500" />
+                              {editData.date ? format(new Date(editData.date), "PPP") : <span>Pilih Tanggal</span>}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0 dark:bg-slate-800 border-slate-200 dark:border-white/10 rounded-xl" align="start">
+                            <CalendarComponent
+                              mode="single"
+                              selected={editData.date ? new Date(editData.date) : undefined}
+                              onSelect={(selectedDate) => {
+                                if (selectedDate) {
+                                  const formattedDate = format(selectedDate, "yyyy-MM-dd");
+                                  setEditData({...editData, date: formattedDate});
+                                }
+                              }}
+                              className="dark:text-white"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+
+                      <div className="flex flex-col gap-3">
+                        <label className="text-sm font-semibold text-slate-600 dark:text-[#94A3B8]">{t('total')} (Rp)</label>
+                        <div className="relative">
+                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#94A3B8]" size={16} />
+                          <input 
+                            type="number" 
+                            value={editData.total === 0 ? '' : editData.total} 
+                            onChange={(e) => setEditData({...editData, total: parseInt(e.target.value) || 0})} 
+                            className={`${inputClass} font-bold text-blue-600 dark:text-cyan-400 rounded-lg`} 
+                          />
+                        </div>
+                      </div>
+                    </div>
 
                     <h4 className="text-slate-500 dark:text-[#94A3B8] text-xs uppercase font-bold tracking-wider mb-4">{t('extractedItems')}</h4>
                     <div className="w-full overflow-hidden rounded-xl border border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-[#090E17]/40 mb-2 transition-colors">
@@ -240,7 +283,6 @@ export default function ValidationPage() {
                   </CardContent>
                 </Card>
               </div>
-
             </div>
           </>
         )}

@@ -92,7 +92,7 @@ export default function ReportsPage() {
             <div className="flex flex-col md:flex-row gap-4 items-end">
               
               {/* DATE RANGE PICKER SHADCN */}
-              <div className="flex-1 w-full space-y-2">
+              <div className="flex-1 w-full flex flex-col gap-2.5">
                 <label className="text-xs font-bold text-slate-500 dark:text-[#94A3B8] uppercase flex items-center gap-2">
                   <CalendarIcon size={14} /> Rentang Waktu
                 </label>
@@ -100,7 +100,7 @@ export default function ReportsPage() {
                   <PopoverTrigger asChild>
                     <Button
                       variant={"outline"}
-                      className={`w-full justify-start text-left font-normal h-[42px] border-slate-200 dark:border-white/10 dark:bg-[#0F172A]/60 hover:bg-slate-100 dark:hover:bg-white/5 ${!date && "text-slate-500"}`}
+                      className={`w-full justify-start text-left font-normal h-[42px] rounded-lg border-slate-200 dark:border-white/10 dark:bg-[#0F172A]/60 hover:bg-slate-100 dark:hover:bg-white/5 ${!date && "text-slate-500"}`}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4 text-cyan-500" />
                       {date?.from ? (
@@ -118,22 +118,19 @@ export default function ReportsPage() {
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 border-slate-200 dark:border-white/10 dark:bg-slate-800 shadow-2xl rounded-xl" align="start">
                     <Calendar
-                    mode="range"
-                    defaultMonth={date?.from}
-                    selected={date}
-                    onSelect={setDate}
-                    numberOfMonths={2}
-                    className="dark:text-white"
+                      mode="range"
+                      defaultMonth={date?.from}
+                      selected={date}
+                      onSelect={setDate}
+                      numberOfMonths={2}
+                      className="dark:text-white"
                     />
                   </PopoverContent>
                 </Popover>
               </div>
 
-              <div className="flex-1 w-full space-y-2">
-                <label className="text-xs font-bold text-slate-500 dark:text-[#94A3B8] uppercase flex items-center gap-2">
-                  <Tag size={14} /> {t('category')}
-                </label>
-                <div className="flex-1 w-full space-y-2">
+              {/* COMBOBOX KATEGORI */}
+              <div className="flex-1 w-full flex flex-col gap-2.5">
                 <label className="text-xs font-bold text-slate-500 dark:text-[#94A3B8] uppercase flex items-center gap-2">
                   <Tag size={14} /> {t('category')}
                 </label>
@@ -146,7 +143,7 @@ export default function ReportsPage() {
                     render={
                       <Button 
                         variant="outline" 
-                        className="w-full justify-between font-normal h-[42px] border-slate-200 dark:border-white/10 dark:bg-[#0F172A]/60 hover:bg-slate-100 dark:hover:bg-white/5"
+                        className="w-full justify-between font-normal h-[42px] rounded-lg border-slate-200 dark:border-white/10 dark:bg-[#0F172A]/60 hover:bg-slate-100 dark:hover:bg-white/5"
                       >
                         <ComboboxValue />
                       </Button>
@@ -165,12 +162,12 @@ export default function ReportsPage() {
                   </ComboboxContent>
                 </Combobox>
               </div>
-              </div>
               
+              {/* TOMBOL RESET */}
               <Button 
                 variant="outline"
                 onClick={() => {setDate(undefined); setCategoryFilter('Semua');}}
-                className="h-[42px] px-6 border-slate-300 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-all rounded-lg"
+                className="h-[42px] px-6 rounded-lg border-slate-300 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
               >
                 <Filter size={16} className="mr-2" />
                 {t('reset')}
