@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // IMPORT KOMPONEN SHADCN
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -98,13 +99,14 @@ export default function ValidationPage() {
               <div className="lg:col-span-2 space-y-6">
                 
                 {/* BANNER PERINGATAN */}
-                <div className="flex items-start space-x-4 p-5 bg-yellow-50 dark:bg-[#FBBF24]/10 border border-yellow-200 dark:border-[#FBBF24]/20 border-l-4 border-l-yellow-500 dark:border-l-[#FBBF24] rounded-xl shadow-sm">
-                  <AlertTriangle className="text-yellow-600 dark:text-[#FBBF24] mt-0.5 shrink-0" size={20} />
-                  <div>
-                    <h4 className="font-semibold text-yellow-800 dark:text-[#FBBF24] text-sm mb-1">{t('reviewRequired')}</h4>
-                    <p className="text-yellow-700/80 dark:text-[#94A3B8] text-sm leading-relaxed">{t('aiIdentified')}</p>
-                  </div>
-                </div>
+                <Alert className="bg-yellow-50 dark:bg-[#FBBF24]/10 border-yellow-200 dark:border-[#FBBF24]/20 border-l-4 border-l-yellow-500 dark:border-l-[#FBBF24] text-yellow-800 dark:text-[#FBBF24] shadow-sm">
+                  {/* Tambahkan !text... agar warna bawaan Shadcn bisa ditimpa */}
+                  <AlertTriangle className="h-5 w-5 !text-yellow-600 dark:!text-[#FBBF24]" />
+                  <AlertTitle className="font-semibold">{t('reviewRequired')}</AlertTitle>
+                  <AlertDescription className="text-yellow-700/80 dark:text-[#94A3B8] leading-relaxed mt-1">
+                    {t('aiIdentified')}
+                  </AlertDescription>
+                </Alert>
 
                 {/* SHADCN CARD UNTUK FORM */}
                 <Card className={glassCardClass}>
@@ -217,11 +219,16 @@ export default function ValidationPage() {
 
               {/* KOLOM KANAN: AI CONFIDENCE */}
               <div className="lg:col-span-1 space-y-6">
+                
+                {/* NOTIFIKASI ERROR (Menggunakan Shadcn Alert Destructive) */}
                 {duplicateError && (
-                  <div className="bg-red-50 dark:bg-[#EF4444]/10 border border-red-200 dark:border-[#EF4444]/30 border-l-4 border-l-red-500 dark:border-l-[#EF4444] rounded-2xl p-6 shadow-md animate-in fade-in">
-                    <div className="flex items-center space-x-3 mb-4"><AlertTriangle className="text-red-500" size={20} /><h3 className="font-bold text-red-700 dark:text-[#EF4444]">{t('duplicateDetected')}</h3></div>
-                    <p className="text-sm text-red-600/80 dark:text-slate-300 leading-relaxed">{duplicateError}</p>
-                  </div>
+                  <Alert variant="destructive" className="bg-red-50 dark:bg-[#EF4444]/10 border-l-4 border-l-red-500 dark:border-l-[#EF4444] shadow-md animate-in fade-in">
+                    <AlertTriangle className="h-5 w-5" />
+                    <AlertTitle className="font-bold">{t('duplicateDetected')}</AlertTitle>
+                    <AlertDescription className="text-red-600/80 dark:text-slate-300 leading-relaxed mt-1">
+                      {duplicateError}
+                    </AlertDescription>
+                  </Alert>
                 )}
                 
                 <Card className={glassCardClass}>
