@@ -6,7 +6,8 @@ import axios from 'axios';
 import Navbar from '@/components/Navbar';
 import { supabase } from '@/lib/supabase';
 import { useSettings } from '@/context/SettingsContext';
-import { AlertTriangle, Calendar, DollarSign, Leaf, Check, Sparkles, Receipt, ArrowRight } from 'lucide-react';
+// 1. IMPORT IKON BARU DITAMBAHKAN DI SINI
+import { AlertTriangle, Calendar, DollarSign, Leaf, Check, Sparkles, Receipt, ArrowRight, Utensils, Car, Shirt, HeartPulse } from 'lucide-react';
 import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -76,13 +77,24 @@ export default function ValidationPage() {
   const inputClass = "w-full bg-slate-50 dark:bg-[#0F172A]/60 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all";
   const categories = ["Makanan", "Transportasi", "Pakaian", "Kesehatan", "Lainnya"];
 
+  // 2. FUNGSI IKON DINAMIS DITAMBAHKAN DI SINI
+  const getCategoryIcon = (cat: string, className: string) => {
+    switch (cat) {
+      case "Makanan": return <Utensils className={className} size={16} />;
+      case "Transportasi": return <Car className={className} size={16} />;
+      case "Pakaian": return <Shirt className={className} size={16} />;
+      case "Kesehatan": return <HeartPulse className={className} size={16} />;
+      default: return <Leaf className={className} size={16} />;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#090E17] text-slate-900 dark:text-[#F8FAFC] font-sans pb-12 transition-colors duration-300 relative">
       <Navbar title={t('reviewResults')} />
       
       <main className="px-8 mt-10 max-w-7xl mx-auto relative z-10">
         {!editData ? (
-          // ================= EMPTY STATE (MENGGUNAKAN SHADCN CARD) =================
+          // ================= EMPTY STATE =================
           <Card className={`${glassCardClass} max-w-2xl mx-auto mt-20 text-center border-dashed border-2`}>
             <CardContent className="flex flex-col items-center justify-center p-12">
               <div className="w-24 h-24 bg-slate-100 dark:bg-white/5 rounded-full flex items-center justify-center mb-6">
@@ -111,7 +123,6 @@ export default function ValidationPage() {
                 
                 {/* BANNER PERINGATAN */}
                 <Alert className="bg-yellow-50 dark:bg-[#FBBF24]/10 border-yellow-200 dark:border-[#FBBF24]/20 border-l-4 border-l-yellow-500 dark:border-l-[#FBBF24] text-yellow-800 dark:text-[#FBBF24] shadow-sm">
-                  {/* Tambahkan !text... agar warna bawaan Shadcn bisa ditimpa */}
                   <AlertTriangle className="h-5 w-5 !text-yellow-600 dark:!text-[#FBBF24]" />
                   <AlertTitle className="font-semibold">{t('reviewRequired')}</AlertTitle>
                   <AlertDescription className="text-yellow-700/80 dark:text-[#94A3B8] leading-relaxed mt-1">
@@ -136,8 +147,8 @@ export default function ValidationPage() {
                                 variant="outline" 
                                 className="w-full justify-between font-normal h-[42px] rounded-lg border-slate-200 dark:border-white/10 dark:bg-[#0F172A]/60 hover:bg-slate-100 dark:hover:bg-white/5 pl-10 relative"
                               >
-                                {/* Ikon Leaf tetap kita pertahankan di dalam tombol */}
-                                <Leaf className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500 dark:text-green-400" size={16} />
+                                {/* 3. IKON DINAMIS PADA TOMBOL UTAMA */}
+                                {getCategoryIcon(editData.category || "Lainnya", "absolute left-3 top-1/2 -translate-y-1/2 text-cyan-500")}
                                 <ComboboxValue />
                               </Button>
                             } 
@@ -147,7 +158,9 @@ export default function ValidationPage() {
                             <ComboboxEmpty className="py-6 text-center text-sm text-slate-500">Kategori tidak ditemukan.</ComboboxEmpty>
                             <ComboboxList>
                               {(item) => (
-                                <ComboboxItem key={item} value={item} className="cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 data-[highlighted]:bg-slate-100 dark:data-[highlighted]:bg-white/10">
+                                <ComboboxItem key={item} value={item} className="cursor-pointer hover:bg-slate-100 dark:hover:bg-white/10 data-[highlighted]:bg-slate-100 dark:data-[highlighted]:bg-white/10 flex items-center gap-2">
+                                  {/* IKON DINAMIS DI DALAM LIST */}
+                                  {getCategoryIcon(item, "text-slate-500")}
                                   {item}
                                 </ComboboxItem>
                               )}

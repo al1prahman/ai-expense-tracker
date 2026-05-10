@@ -2,9 +2,12 @@
 import { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { useSettings } from '@/context/SettingsContext';
-import { Save, CheckCircle2, Palette, Globe, Moon, Sun, Flag } from 'lucide-react';
+import { Save, Palette, Globe, Moon, Sun, Flag } from 'lucide-react';
 
-// IMPORT KOMPONEN SHADCN (Tabs sudah terinstal manual sebelumnya)
+// IMPORT SONNER
+import { toast } from "sonner";
+
+// IMPORT KOMPONEN SHADCN
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,7 +16,6 @@ export default function SettingsPage() {
   const { language, theme, saveSettings, t } = useSettings();
   const [tempLang, setTempLang] = useState<'id' | 'en'>(language);
   const [tempTheme, setTempTheme] = useState<'dark' | 'light'>(theme);
-  const [isSaved, setIsSaved] = useState(false);
 
   // Reset state jika context berubah dari luar
   useEffect(() => {
@@ -23,18 +25,16 @@ export default function SettingsPage() {
 
   const handleSave = () => {
     saveSettings(tempLang, tempTheme);
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 3000);
+    
+    // PEMANGGILAN SONNER TOAST
+    toast.success(t('saveSuccess') || "Pengaturan berhasil disimpan!", {
+      description: `Tema: ${tempTheme === 'dark' ? 'Gelap' : 'Terang'} | Bahasa: ${tempLang === 'id' ? 'Indonesia' : 'English'}`,
+    });
   };
 
-  // 1. UTILITY: KELAS UNTUK LIQUID GLASS CARD (Di mode Terang)
-  // shadow-2xl untuk bayangan yang jauh lebih lembut dan luas
-  // border-slate-200/60 untuk garis tepi kaca yang sangat halus
   const glassCardClass = "bg-white/70 dark:bg-slate-800/40 backdrop-blur-xl border border-slate-200/60 dark:border-white/10 shadow-2xl transition-all duration-300";
-  
-  // 2. UTILITY: KELAS UNTUK AREA KONTROL TOGGLE (Presisi ala Apple)
-  // border-slate-300/60 untuk kotak luar toggle yang jelas dan presisi
   const controlBoxClass = "grid grid-cols-2 h-14 bg-slate-100 dark:bg-[#0F172A] rounded-xl p-1 border border-slate-300/60 dark:border-white/5";
+  const tabTriggerClass = "rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 font-bold transition-all flex gap-2 h-full border border-transparent data-[state=active]:bg-white data-[state=active]:text-cyan-600 data-[state=active]:border-slate-100 data-[state=active]:shadow-sm dark:data-[state=active]:bg-white/10 dark:data-[state=active]:text-cyan-400 dark:data-[state=active]:border-white/5";
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#090E17] text-slate-900 dark:text-[#F8FAFC] font-sans pb-12 transition-colors duration-300 relative">
@@ -47,15 +47,7 @@ export default function SettingsPage() {
           <p className="text-slate-500 dark:text-[#94A3B8]">{t('desc')}</p>
         </div>
 
-        {/* NOTIFIKASI SUKSES (Mewah) */}
-        {isSaved && (
-          <div className="flex items-center justify-center space-x-2 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 p-4 rounded-xl border border-green-200 dark:border-green-500/20 animate-in fade-in slide-in-from-top-4">
-            <CheckCircle2 size={20} />
-            <span className="font-medium text-sm">{t('saveSuccess')}</span>
-          </div>
-        )}
-
-        {/* 3. TEMA APLIKASI (Liquid Glass Card) */}
+        {/* KARTU TEMA */}
         <Card className={glassCardClass}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
@@ -65,17 +57,12 @@ export default function SettingsPage() {
             <CardDescription>Pilih nuansa antarmuka AetherFinance yang paling nyaman untuk mata Anda.</CardDescription>
           </CardHeader>
           <CardContent>
-            {/* TABS (TOGGLE TEMA) - DIRAPIKAN PRESISINYA */}
-            <Tabs 
-              value={tempTheme} 
-              onValueChange={(val) => setTempTheme(val as 'light' | 'dark')} 
-              className="w-full"
-            >
+            <Tabs value={tempTheme} onValueChange={(val) => setTempTheme(val as 'light' | 'dark')} className="w-full">
               <TabsList className={controlBoxClass}>
-                <TabsTrigger value="light" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-cyan-600 dark:data-[state=active]:bg-white/10 dark:data-[state=active]:text-cyan-400 text-slate-500 font-bold transition-all flex gap-2 h-full border border-transparent data-[state=active]:border-slate-100 data-[state=active]:shadow-sm">
+                <TabsTrigger value="light" className={tabTriggerClass}>
                   <Sun size={18} /> {t('light')}
                 </TabsTrigger>
-                <TabsTrigger value="dark" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-cyan-600 dark:data-[state=active]:bg-[#1E293B] dark:data-[state=active]:text-cyan-400 text-slate-500 font-bold transition-all flex gap-2 h-full border border-transparent data-[state=active]:border-white/5 data-[state=active]:shadow-sm">
+                <TabsTrigger value="dark" className={tabTriggerClass}>
                   <Moon size={18} /> {t('dark')}
                 </TabsTrigger>
               </TabsList>
@@ -83,7 +70,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* 4. BAHASA (Liquid Glass Card) */}
+        {/* KARTU BAHASA */}
         <Card className={glassCardClass}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
@@ -93,28 +80,19 @@ export default function SettingsPage() {
             <CardDescription>Sesuaikan bahasa sistem untuk analisis dan laporan AI.</CardDescription>
           </CardHeader>
           <CardContent>
-             {/* TABS (TOGGLE BAHASA) - DIRAPIKAN PRESISINYA */}
-             <Tabs 
-              value={tempLang} 
-              onValueChange={(val) => setTempLang(val as 'id' | 'en')} 
-              className="w-full"
-            >
+             <Tabs value={tempLang} onValueChange={(val) => setTempLang(val as 'id' | 'en')} className="w-full">
               <TabsList className={controlBoxClass}>
-                <TabsTrigger value="id" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 dark:data-[state=active]:bg-white/10 dark:data-[state=active]:text-cyan-400 text-slate-500 font-bold transition-all flex gap-2 h-full border border-transparent data-[state=active]:border-slate-100 data-[state=active]:shadow-sm">
+                <TabsTrigger value="id" className={tabTriggerClass}>
                   <Flag size={18} /> {t('indonesian')}
                 </TabsTrigger>
-                <TabsTrigger value="en" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-blue-600 dark:data-[state=active]:bg-[#1E293B] dark:data-[state=active]:text-cyan-400 text-slate-500 font-bold transition-all flex gap-2 h-full border border-transparent data-[state=active]:border-white/5 data-[state=active]:shadow-sm">
+                <TabsTrigger value="en" className={tabTriggerClass}>
                   <Flag size={18} /> {t('english')}
                 </TabsTrigger>
               </TabsList>
             </Tabs>
           </CardContent>
           
-          {/* 5. FOOTER KARTU YANG JAUH LEBIH BERKELAS (Mewah) */}
-          {/* bg-slate-50/50 memberikan efek pemisah kaca yang halus di mode terang */}
-          {/* border-t-slate-100 memberikan garis pemisah tipis yang elegan */}
           <CardFooter className="bg-slate-50/50 dark:bg-white/5 border-t border-slate-100 dark:border-white/5 py-5 mt-6 justify-end rounded-b-xl shadow-inner transition-colors">
-            {/* BUTTON SIMPAN YANG KEMBALI MENYALA CANTIK */}
             <Button 
               onClick={handleSave}
               className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:opacity-90 text-white font-bold px-8 shadow-lg dark:shadow-[0_0_15px_rgba(6,182,212,0.3)] transition-all h-11"

@@ -4,9 +4,10 @@ import "./globals.css";
 import ClientLayout from "@/components/ClientLayout";
 import { SettingsProvider } from "@/context/SettingsContext";
 import { cn } from "@/lib/utils";
+import Sidebar from "@/components/Sidebar";
+import { Toaster } from "@/components/ui/sonner";
 
 const figtree = Figtree({subsets:['latin'],variable:'--font-sans'});
-
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -20,14 +21,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={cn("font-sans", figtree.variable)} >
+    <html lang="id">
       <body className={inter.className}>
-        {/* Bungkus seluruh aplikasi dengan SettingsProvider */}
         <SettingsProvider>
-          <ClientLayout>
-            {children}
-          </ClientLayout>
+          {/* 2. BUNGKUS DENGAN FLEX AGAR SIDEBAR BERSAMPINGAN DENGAN KONTEN */}
+          <div className="flex min-h-screen">
+            <Sidebar /> 
+            <div className="flex-1 flex flex-col w-full">
+              {children}
+            </div>
+          </div>
         </SettingsProvider>
+        
+        {/* TOASTER SONNER TETAP DI SINI */}
+        <Toaster position="bottom-right" richColors />
       </body>
     </html>
   );

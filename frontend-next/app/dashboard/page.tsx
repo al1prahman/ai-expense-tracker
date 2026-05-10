@@ -197,7 +197,7 @@ export default function DashboardPage() {
                       <td colSpan={4} className="py-12 text-center text-slate-400 dark:text-slate-500 italic">{t('noTransactionHistory')}</td>
                     </tr>
                   ) : (
-                    filteredHistory.slice(0, 5).map((item) => (
+                    filteredHistory.slice(0, 10).map((item) => (
                       <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group">
                         <td className="py-4 px-4 text-slate-600 dark:text-[#94A3B8] font-medium">{item.date}</td>
                         <td className="py-4 px-4 flex items-center space-x-3">

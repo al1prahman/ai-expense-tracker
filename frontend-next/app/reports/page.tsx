@@ -4,7 +4,7 @@ import axios from 'axios';
 import Navbar from '@/components/Navbar';
 import { supabase } from '@/lib/supabase';
 import { useSettings } from '@/context/SettingsContext';
-import { Tag, ChevronDown, ChevronUp, Receipt, ShoppingBag, Filter, CalendarIcon } from 'lucide-react';
+import { Tag, ChevronDown, Receipt, ShoppingBag, Filter, CalendarIcon } from 'lucide-react';
 import { format } from "date-fns";
 import { DateRange } from "react-day-picker";
 
@@ -23,6 +23,15 @@ import {
   ComboboxTrigger,
   ComboboxValue,
 } from "@/components/ui/combobox";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 export default function ReportsPage() {
   const [expenses, setExpenses] = useState<any[]>([]);
@@ -31,9 +40,13 @@ export default function ReportsPage() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const { t } = useSettings();
 
-  // STATE BARU: Date Range Picker
+  // STATE FILTER
   const [date, setDate] = useState<DateRange | undefined>();
   const [categoryFilter, setCategoryFilter] = useState('Semua');
+
+  // STATE PAGINATION
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
     const fetchExpenses = async () => {
@@ -53,11 +66,11 @@ export default function ReportsPage() {
     fetchExpenses();
   }, []);
 
+  // LOGIKA FILTER
   useEffect(() => {
     let result = expenses;
     if (categoryFilter !== 'Semua') result = result.filter(item => item.category === categoryFilter);
     
-    // LOGIC FILTER RENTANG TANGGAL BARU
     if (date?.from) {
       result = result.filter(item => new Date(item.date) >= date.from!);
     }
@@ -66,14 +79,29 @@ export default function ReportsPage() {
     }
     
     setFilteredExpenses(result);
+    setCurrentPage(1); // Reset ke halaman 1 setiap kali filter berubah
   }, [date, categoryFilter, expenses]);
+
+  // LOGIKA PAGINATION (Menghitung Total Halaman & Memotong Array Data)
+  const totalPages = Math.ceil(filteredExpenses.length / ITEMS_PER_PAGE);
+  const paginatedExpenses = filteredExpenses.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  // LOGIKA NOMOR HALAMAN DINAMIS (Munculkan ... jika halaman lebih dari 5)
+  const getVisiblePages = () => {
+    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    if (currentPage <= 3) return [1, 2, 3, 4, 'ellipsis', totalPages];
+    if (currentPage >= totalPages - 2) return [1, 'ellipsis', totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    return [1, 'ellipsis', currentPage - 1, currentPage, currentPage + 1, 'ellipsis', totalPages];
+  };
 
   const toggleExpand = (id: number) => {
     setExpandedId(expandedId === id ? null : id);
   };
 
   const glassCardClass = "bg-white/70 dark:bg-slate-800/40 backdrop-blur-xl border border-slate-200/60 dark:border-white/10 shadow-2xl transition-all duration-300 overflow-hidden";
-  const inputClass = "w-full bg-slate-50 dark:bg-[#0F172A]/60 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all";
   const reportCategories = ["Semua", "Makanan", "Transportasi", "Pakaian", "Kesehatan", "Lainnya"];
 
   return (
@@ -91,7 +119,6 @@ export default function ReportsPage() {
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row gap-4 items-end">
               
-              {/* DATE RANGE PICKER SHADCN */}
               <div className="flex-1 w-full flex flex-col gap-2.5">
                 <label className="text-xs font-bold text-slate-500 dark:text-[#94A3B8] uppercase flex items-center gap-2">
                   <CalendarIcon size={14} /> Rentang Waktu
@@ -129,7 +156,6 @@ export default function ReportsPage() {
                 </Popover>
               </div>
 
-              {/* COMBOBOX KATEGORI */}
               <div className="flex-1 w-full flex flex-col gap-2.5">
                 <label className="text-xs font-bold text-slate-500 dark:text-[#94A3B8] uppercase flex items-center gap-2">
                   <Tag size={14} /> {t('category')}
@@ -163,7 +189,6 @@ export default function ReportsPage() {
                 </Combobox>
               </div>
               
-              {/* TOMBOL RESET */}
               <Button 
                 variant="outline"
                 onClick={() => {setDate(undefined); setCategoryFilter('Semua');}}
@@ -184,11 +209,10 @@ export default function ReportsPage() {
               {t('transactionHistory')}
             </CardTitle>
             <span className="text-sm font-medium text-blue-700 dark:text-cyan-400 bg-blue-50 dark:bg-cyan-500/10 px-4 py-1.5 rounded-full border border-blue-100 dark:border-cyan-500/20">
-              {filteredExpenses.length} {t('recordsFound')}
+              {filteredExpenses.length} Total Data
             </span>
           </CardHeader>
           <CardContent className="p-0">
-            {/* ... (Isi tabel tidak berubah, sama seperti sebelumnya) ... */}
             <div className="w-full overflow-x-auto">
               {loading ? (
                 <div className="p-12 text-center text-slate-400 animate-pulse">{t('loadingReports')}</div>
@@ -206,11 +230,12 @@ export default function ReportsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                    {filteredExpenses.map((expense) => (
+                    {/* LOOPING MENGGUNAKAN paginatedExpenses BUKAN LAGI filteredExpenses */}
+                    {paginatedExpenses.map((expense) => (
                       <React.Fragment key={expense.id}>
                         <tr 
                           onClick={() => toggleExpand(expense.id)}
-                          className={`hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer ${expandedId === expense.id ? 'bg-slate-50 dark:bg-white/5' : ''}`}
+                          className={`hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors ${expandedId === expense.id ? 'bg-slate-50 dark:bg-white/5' : ''}`}
                         >
                           <td className="py-4 px-6 font-medium">{expense.date}</td>
                           <td className="py-4 px-6">
@@ -221,26 +246,33 @@ export default function ReportsPage() {
                           <td className="py-4 px-6 text-center">{expense.items?.length || 0}</td>
                           <td className="py-4 px-6 text-right font-black text-blue-600 dark:text-cyan-400">Rp {expense.total.toLocaleString("id-ID")}</td>
                           <td className="py-4 px-6 text-center">
-                            {expandedId === expense.id ? <ChevronUp size={20} className="mx-auto" /> : <ChevronDown size={20} className="mx-auto" />}
+                            {/* ANIMASI ROTASI CHEVRON YANG SANGAT MULUS */}
+                            <ChevronDown 
+                              size={20} 
+                              className={`mx-auto text-slate-400 transition-transform duration-300 ease-in-out ${expandedId === expense.id ? '-rotate-180 text-cyan-500' : ''}`} 
+                            />
                           </td>
                         </tr>
                         {expandedId === expense.id && (
                           <tr className="bg-slate-50/50 dark:bg-[#050A10]/50 shadow-inner">
-                            <td colSpan={5} className="py-6 px-8 border-t-0">
-                              <div className="flex items-start gap-4">
-                                <div className="p-2 bg-slate-200 dark:bg-slate-800 rounded-lg shrink-0">
-                                  <ShoppingBag className="text-slate-500" size={20} />
-                                </div>
-                                <div className="w-full">
-                                  <h4 className="text-xs font-bold uppercase tracking-wider mb-4">{t('itemDetails')}</h4>
-                                  <ul className="space-y-3">
-                                    {expense.items && expense.items.map((item: any, idx: number) => (
-                                      <li key={idx} className="flex justify-between items-center text-sm border-b dark:border-white/5 pb-3 last:border-0 last:pb-0">
-                                        <span className="font-medium">{item.name}</span>
-                                        <span className="font-bold">Rp {item.price.toLocaleString("id-ID")}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
+                            <td colSpan={5} className="p-0 border-t-0">
+                              {/* ANIMASI DROPDOWN MENGGUNAKAN TAILWIND ANIMATE */}
+                              <div className="py-6 px-8 animate-in slide-in-from-top-4 fade-in duration-300 ease-out">
+                                <div className="flex items-start gap-4">
+                                  <div className="p-2 bg-slate-200 dark:bg-slate-800 rounded-lg shrink-0 shadow-sm">
+                                    <ShoppingBag className="text-slate-500" size={20} />
+                                  </div>
+                                  <div className="w-full">
+                                    <h4 className="text-xs font-bold uppercase tracking-wider mb-4 text-slate-500">{t('itemDetails')}</h4>
+                                    <ul className="space-y-3">
+                                      {expense.items && expense.items.map((item: any, idx: number) => (
+                                        <li key={idx} className="flex justify-between items-center text-sm border-b border-slate-200/50 dark:border-white/5 pb-3 last:border-0 last:pb-0">
+                                          <span className="font-medium text-slate-700 dark:text-slate-200">{item.name}</span>
+                                          <span className="font-bold text-slate-900 dark:text-white">Rp {item.price.toLocaleString("id-ID")}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
                                 </div>
                               </div>
                             </td>
@@ -252,6 +284,48 @@ export default function ReportsPage() {
                 </table>
               )}
             </div>
+            
+            {/* PAGINATION COMPONENT SHADCN */}
+            {totalPages > 1 && (
+              <div className="py-4 px-6 border-t border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-[#0F172A]/20">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        href="#" 
+                        onClick={(e) => { e.preventDefault(); setCurrentPage(p => Math.max(1, p - 1)); }}
+                        className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    
+                    {getVisiblePages().map((page, index) => (
+                      <PaginationItem key={index}>
+                        {page === 'ellipsis' ? (
+                          <PaginationEllipsis />
+                        ) : (
+                          <PaginationLink 
+                            href="#" 
+                            isActive={currentPage === page}
+                            onClick={(e) => { e.preventDefault(); setCurrentPage(page as number); }}
+                            className="cursor-pointer"
+                          >
+                            {page}
+                          </PaginationLink>
+                        )}
+                      </PaginationItem>
+                    ))}
+
+                    <PaginationItem>
+                      <PaginationNext 
+                        href="#" 
+                        onClick={(e) => { e.preventDefault(); setCurrentPage(p => Math.min(totalPages, p + 1)); }}
+                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </CardContent>
         </Card>
       </main>
