@@ -4,7 +4,7 @@ import axios from 'axios';
 import Navbar from '@/components/Navbar';
 import { supabase } from '@/lib/supabase';
 import { useSettings } from '@/context/SettingsContext';
-import { Tag, ChevronDown, Receipt, ShoppingBag, Filter, CalendarIcon } from 'lucide-react';
+import { Tag, ChevronDown, Receipt, ShoppingBag, Filter, CalendarIcon, Utensils, Car, Shirt, HeartPulse, Leaf } from 'lucide-react';
 import { format } from "date-fns";
 import { DateRange } from "react-day-picker";
 
@@ -39,6 +39,17 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const { t } = useSettings();
+
+  // FUNGSI IKON DINAMIS
+  const getCategoryIcon = (cat: string, className: string, iconSize: number = 16) => {
+    switch (cat) {
+      case "Makanan": return <Utensils className={className} size={iconSize} />;
+      case "Transportasi": return <Car className={className} size={iconSize} />;
+      case "Pakaian": return <Shirt className={className} size={iconSize} />;
+      case "Kesehatan": return <HeartPulse className={className} size={iconSize} />;
+      default: return <Leaf className={className} size={iconSize} />;
+    }
+  };
 
   // STATE FILTER
   const [date, setDate] = useState<DateRange | undefined>();
@@ -238,7 +249,10 @@ export default function ReportsPage() {
                           className={`hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors ${expandedId === expense.id ? 'bg-slate-50 dark:bg-white/5' : ''}`}
                         >
                           <td className="py-4 px-6 font-medium">{expense.date}</td>
-                          <td className="py-4 px-6">
+                          <td className="py-4 px-6 flex items-center space-x-3">
+                            <div className="p-2 bg-blue-100 dark:bg-blue-500/10 rounded-lg shadow-sm">
+                              {getCategoryIcon(expense.category, "text-blue-600 dark:text-blue-400")}
+                            </div>
                             <span className="px-3 py-1 bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 text-[11px] font-bold uppercase rounded-md border border-blue-200 dark:border-blue-500/10">
                               {expense.category}
                             </span>
@@ -260,7 +274,7 @@ export default function ReportsPage() {
                               <div className="py-6 px-8 animate-in slide-in-from-top-4 fade-in duration-300 ease-out">
                                 <div className="flex items-start gap-4">
                                   <div className="p-2 bg-slate-200 dark:bg-slate-800 rounded-lg shrink-0 shadow-sm">
-                                    <ShoppingBag className="text-slate-500" size={20} />
+                                    {getCategoryIcon(expense.category, "text-slate-500", 20)}
                                   </div>
                                   <div className="w-full">
                                     <h4 className="text-xs font-bold uppercase tracking-wider mb-4 text-slate-500">{t('itemDetails')}</h4>

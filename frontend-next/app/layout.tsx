@@ -25,9 +25,9 @@ export default function RootLayout({
       <body className={inter.className}>
         <SettingsProvider>
           {/* 2. BUNGKUS DENGAN FLEX AGAR SIDEBAR BERSAMPINGAN DENGAN KONTEN */}
-          <div className="flex min-h-screen">
+          <div className="flex min-h-screen bg-slate-50 dark:bg-[#090E17] text-slate-900 dark:text-[#F8FAFC]">
             <Sidebar /> 
-            <div className="flex-1 flex flex-col w-full">
+            <div className="flex-1 flex flex-col w-full ml-[220px]">
               {children}
             </div>
           </div>

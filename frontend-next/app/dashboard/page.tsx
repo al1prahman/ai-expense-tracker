@@ -5,7 +5,7 @@ import Navbar from '@/components/Navbar';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useSettings } from '@/context/SettingsContext';
-import { Lightbulb, ShoppingBag, ChevronRight } from 'lucide-react';
+import { Lightbulb, ShoppingBag, ChevronRight, Utensils, Car, Shirt, HeartPulse, Leaf } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 // 1. IMPORT KOMPONEN CARD SHADCN
@@ -62,6 +62,17 @@ export default function DashboardPage() {
   const chartData = getChartData();
   const COLORS = ['#06B6D4', '#3B82F6', '#1E3A5F', '#8B5CF6', '#F59E0B'];
 
+  // FUNGSI IKON DINAMIS
+  const getCategoryIcon = (cat: string, className: string) => {
+    switch (cat) {
+      case "Makanan": return <Utensils className={className} size={16} />;
+      case "Transportasi": return <Car className={className} size={16} />;
+      case "Pakaian": return <Shirt className={className} size={16} />;
+      case "Kesehatan": return <HeartPulse className={className} size={16} />;
+      default: return <Leaf className={className} size={16} />;
+    }
+  };
+
   // Utility untuk class Liquid Glass Card agar tidak menulis ulang
   const glassClass = "bg-white/70 dark:bg-slate-800/40 backdrop-blur-xl border-slate-200 dark:border-white/10 shadow-sm dark:shadow-2xl transition-all duration-300";
 
@@ -72,8 +83,8 @@ export default function DashboardPage() {
       <main className="px-8 mt-4 max-w-[1400px] mx-auto space-y-6">
         
         {/* 2. TIGA KARTU STATISTIK UTAMA (MENGGUNAKAN SHADCN CARD) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className={glassClass}>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          <Card className={`${glassClass} lg:col-span-2`}>
             <CardHeader className="pb-2">
               <CardDescription className="text-slate-500 dark:text-[#94A3B8] font-medium">{t('totalExpense')}</CardDescription>
               <CardTitle className="text-4xl font-bold text-blue-600 dark:text-cyan-400">
@@ -82,7 +93,7 @@ export default function DashboardPage() {
             </CardHeader>
           </Card>
 
-          <Card className={glassClass}>
+          <Card className={`${glassClass} lg:col-span-1`}>
             <CardHeader className="pb-2">
               <CardDescription className="text-slate-500 dark:text-[#94A3B8] font-medium">{t('receiptCount')}</CardDescription>
               <div className="flex items-baseline space-x-2">
@@ -92,7 +103,7 @@ export default function DashboardPage() {
             </CardHeader>
           </Card>
 
-          <Card className={glassClass}>
+          <Card className={`${glassClass} lg:col-span-2`}>
             <CardHeader className="pb-2">
               <CardDescription className="text-slate-500 dark:text-[#94A3B8] font-medium">{t('topCategory')}</CardDescription>
               <CardTitle className="text-3xl font-bold truncate text-slate-800 dark:text-white">
@@ -202,7 +213,7 @@ export default function DashboardPage() {
                         <td className="py-4 px-4 text-slate-600 dark:text-[#94A3B8] font-medium">{item.date}</td>
                         <td className="py-4 px-4 flex items-center space-x-3">
                           <div className="p-2 bg-blue-100 dark:bg-blue-500/10 rounded-lg shadow-sm">
-                            <ShoppingBag size={16} className="text-blue-600 dark:text-blue-400" />
+                            {getCategoryIcon(item.category, "text-blue-600 dark:text-blue-400")}
                           </div>
                           <span className="font-bold text-slate-700 dark:text-white px-3 py-1 bg-slate-100 dark:bg-white/5 text-[10px] uppercase rounded-md border border-slate-200 dark:border-white/5 transition-colors">
                             {item.category}
